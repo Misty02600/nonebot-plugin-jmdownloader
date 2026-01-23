@@ -1,0 +1,10 @@
+# 白名单：允许同步的文件/目录（git pathspec 的 :! 语法）
+:!.github/**
+:!.pre-commit-config.yaml
+:!justfile
+:!pyproject.toml
+:!.gitignore
+:!cliff.toml
+
+# 其余全部不同步
+*

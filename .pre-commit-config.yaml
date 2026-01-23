@@ -1,22 +1,23 @@
-default_install_hook_types: [pre-commit, prepare-commit-msg]
-ci:
-  autofix_commit_msg: ":rotating_light: auto fix by pre-commit hooks"
-  autofix_prs: true
-  autoupdate_branch: master
-  autoupdate_schedule: monthly
-  autoupdate_commit_msg: ":arrow_up: auto update by pre-commit hooks"
+default_install_hook_types: [pre-commit, commit-msg]
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.2
+  - repo: builtin
     hooks:
-      - id: ruff
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.13
+    hooks:
+      - id: ruff-check
         args: [--fix]
         stages: [pre-commit]
       - id: ruff-format
         stages: [pre-commit]
 
-  - repo: https://github.com/nonebot/nonemoji
-    rev: v0.1.4
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.12.0
     hooks:
-      - id: nonemoji
-        stages: [prepare-commit-msg]
+      - id: commitizen
+        stages: [commit-msg]

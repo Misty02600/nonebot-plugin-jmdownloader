@@ -1,7 +1,6 @@
 import json
-from datetime import datetime, timedelta
-from typing import Optional, List
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 from nonebot import logger, require
 
@@ -202,7 +201,7 @@ class JmComicDataManager:
 class SearchState:
     query: str
     start_idx: int
-    total_results: List[str]
+    total_results: list[str]
     api_page: int
     created_at: datetime = field(default_factory=datetime.now)
 
@@ -219,7 +218,7 @@ class SearchManager:
         self.states: dict[str, SearchState] = {}
         self.ttl_minutes = ttl_minutes
 
-    def get_state(self, user_id: str) -> Optional[SearchState]:
+    def get_state(self, user_id: str) -> SearchState | None:
         """获取用户的搜索状态,如果过期则返回None"""
         state = self.states.get(user_id)
         if state and state.is_expired(self.ttl_minutes):

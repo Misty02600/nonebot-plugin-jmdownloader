@@ -1,8 +1,8 @@
 import os
 
 import nonebot
-from nonebot.adapters.onebot.v11 import Adapter as OnebotV11Adapter
 import pytest
+from nonebot.adapters.onebot.v11 import Adapter as OnebotV11Adapter
 from pytest_asyncio import is_async_test
 
 os.environ["ENVIRONMENT"] = "test"

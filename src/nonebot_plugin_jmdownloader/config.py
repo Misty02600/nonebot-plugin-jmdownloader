@@ -1,6 +1,6 @@
 from pathlib import Path
-from typing import Optional
-from nonebot import get_plugin_config, require, logger
+
+from nonebot import get_plugin_config, require
 from pydantic import BaseModel, Field, validator
 
 require("nonebot_plugin_localstore")
@@ -12,8 +12,8 @@ class Config(BaseModel):
     jmcomic_log: bool = Field(default=False, description="是否启用JMComic API日志")
     jmcomic_proxies: str = Field(default="system", description="代理配置")
     jmcomic_thread_count: int = Field(default=10, description="下载线程数量")
-    jmcomic_username: Optional[str] = Field(default=None, description="JM登录用户名")
-    jmcomic_password: Optional[str] = Field(default=None, description="JM登录密码")
+    jmcomic_username: str | None = Field(default=None, description="JM登录用户名")
+    jmcomic_password: str | None = Field(default=None, description="JM登录密码")
     jmcomic_allow_groups: bool = Field(default=False, description="是否默认启用所有群")
     jmcomic_user_limits: int = Field(default=5, description="每位用户的每周下载限制次数")
     jmcomic_modify_real_md5: bool = Field(default=False, description="是否真正修改PDF文件的MD5值")
@@ -21,7 +21,7 @@ class Config(BaseModel):
     jmcomic_results_per_page: int = Field(default=20, description="每页显示的搜索结果数量")
 
 
-    @validator('jmcomic_password', 'jmcomic_username', pre=True)
+    @validator("jmcomic_password", "jmcomic_username", pre=True)
     def convert_to_string(cls, v):
         if v is not None:
             return str(v)

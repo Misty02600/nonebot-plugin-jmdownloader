@@ -4,18 +4,29 @@ import struct
 from io import BytesIO
 
 import httpx
-from jmcomic import (JmcomicClient, JmcomicException, JmDownloader,
-                     JmModuleConfig, JmPhotoDetail, JmSearchPage,
-                     JsonResolveFailException, MissingAlbumPhotoException,
-                     RequestRetryAllFailException)
+from jmcomic import (
+    JmcomicClient,
+    JmcomicException,
+    JmDownloader,
+    JmModuleConfig,
+    JmPhotoDetail,
+    JsonResolveFailException,
+    MissingAlbumPhotoException,
+    RequestRetryAllFailException,
+)
 from nonebot import logger
-from nonebot.adapters.onebot.v11 import (Bot, GroupMessageEvent, MessageEvent,
-                                         PrivateMessageEvent)
+from nonebot.adapters.onebot.v11 import (
+    Bot,
+    GroupMessageEvent,
+    MessageEvent,
+    PrivateMessageEvent,
+)
 from nonebot.adapters.onebot.v11.exception import ActionFailed
 from nonebot.rule import Rule
 from PIL import Image, ImageFilter
 
 from .data_source import data_manager
+
 
 #region API与下载相关函数
 def get_photo_info(client: JmcomicClient, photo_id):
@@ -29,13 +40,13 @@ def get_photo_info(client: JmcomicClient, photo_id):
 
     except JsonResolveFailException as e:
         resp = e.resp
-        logger.error(f'错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}')
+        logger.error(f"错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}")
 
     except RequestRetryAllFailException:
-        logger.error('错误：请求失败，已达最大重试次数。')
+        logger.error("错误：请求失败，已达最大重试次数。")
 
     except JmcomicException as e:
-        logger.error(f'JMComic 发生未知错误: {e}')
+        logger.error(f"JMComic 发生未知错误: {e}")
 
     return None
 
@@ -64,13 +75,13 @@ def search_album(client: JmcomicClient, search_query: str, page: int = 1):
 
     except JsonResolveFailException as e:
         resp = e.resp
-        logger.error(f'错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}')
+        logger.error(f"错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}")
 
     except RequestRetryAllFailException:
-        logger.error('错误：请求失败，已达最大重试次数。')
+        logger.error("错误：请求失败，已达最大重试次数。")
 
     except JmcomicException as e:
-        logger.error(f'JMComic 发生未知错误: {e}')
+        logger.error(f"JMComic 发生未知错误: {e}")
 
     return None
 
@@ -191,24 +202,24 @@ def modify_pdf_md5(original_pdf_path, output_path):
     """
     try:
         # 读取原始PDF
-        with open(original_pdf_path, 'rb') as f:
+        with open(original_pdf_path, "rb") as f:
             content = f.read()
 
         # 生成随机字节
-        random_bytes = struct.pack('d', random.random())
+        random_bytes = struct.pack("d", random.random())
 
         # 添加随机注释到PDF末尾
         # PDF规范允许在文件末尾添加注释，以%%EOF结尾
         # 我们在%%EOF之前添加随机内容作为注释
-        if content.endswith(b'%%EOF'):
+        if content.endswith(b"%%EOF"):
             # 如果PDF以%%EOF结尾，在它前面添加注释
-            modified_content = content[:-5] + b'\n% Random: ' + random_bytes + b'\n%%EOF'
+            modified_content = content[:-5] + b"\n% Random: " + random_bytes + b"\n%%EOF"
         else:
             # 如果没有，直接在末尾添加注释和EOF标记
-            modified_content = content + b'\n% Random: ' + random_bytes + b'\n%%EOF'
+            modified_content = content + b"\n% Random: " + random_bytes + b"\n%%EOF"
 
         # 写入修改后的内容
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(modified_content)
 
         return True

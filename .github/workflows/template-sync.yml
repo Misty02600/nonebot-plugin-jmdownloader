@@ -1,0 +1,32 @@
+# 定期从上游模板仓库同步更新
+name: Sync from template
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"  # 每周一（UTC）
+  workflow_dispatch:      # 允许手动触发
+
+jobs:
+  repo-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # 需要写权限以推送到分支
+      pull-requests: write  # 需要权限以创建 PR
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Sync template (no auto conflict choice)
+        uses: AndreasAugustin/actions-template-sync@v2
+        with:
+          source_repo_path: Misty02600/nonebot-plugin-template
+          upstream_branch: main
+          pr_labels: template_sync
+
+          # Git 拉取参数配置：
+          # --allow-unrelated-histories: 允许同步历史不相关的仓库（通过模板创建的项目通常没有共享git历史）
+          # --squash: 将模板的变更压缩为一个提交，保持下游仓库历史整洁
+          git_remote_pull_params: "--allow-unrelated-histories --squash"

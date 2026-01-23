@@ -1,6 +1,6 @@
+import pytest
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message
 from nonebug import App
-import pytest
 
 
 def make_onebot_msg(message: Message) -> GroupMessageEvent:
