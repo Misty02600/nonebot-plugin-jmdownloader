@@ -28,7 +28,7 @@ from PIL import Image, ImageFilter
 from .data_source import data_manager
 
 
-#region API与下载相关函数
+# region API与下载相关函数
 def get_photo_info(client: JmcomicClient, photo_id):
     """获取章节信息和 Bot 要发送的消息"""
     try:
@@ -40,7 +40,9 @@ def get_photo_info(client: JmcomicClient, photo_id):
 
     except JsonResolveFailException as e:
         resp = e.resp
-        logger.error(f"错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}")
+        logger.error(
+            f"错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}"
+        )
 
     except RequestRetryAllFailException:
         logger.error("错误：请求失败，已达最大重试次数。")
@@ -49,6 +51,7 @@ def get_photo_info(client: JmcomicClient, photo_id):
         logger.error(f"JMComic 发生未知错误: {e}")
 
     return None
+
 
 async def get_photo_info_async(client: JmcomicClient, photo_id):
     return await asyncio.to_thread(get_photo_info, client, photo_id)
@@ -63,6 +66,7 @@ def download_photo(downloader: JmDownloader, photo: JmPhotoDetail):
         logger.error(f"JMComic 下载失败: {e}")
         return False
 
+
 async def download_photo_async(downloader: JmDownloader, photo: JmPhotoDetail):
     return await asyncio.to_thread(download_photo, downloader, photo)
 
@@ -75,7 +79,9 @@ def search_album(client: JmcomicClient, search_query: str, page: int = 1):
 
     except JsonResolveFailException as e:
         resp = e.resp
-        logger.error(f"错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}")
+        logger.error(
+            f"错误：解析 JSON 失败 (HTTP {resp.status_code})\n响应内容: {resp.text}"
+        )
 
     except RequestRetryAllFailException:
         logger.error("错误：请求失败，已达最大重试次数。")
@@ -84,6 +90,7 @@ def search_album(client: JmcomicClient, search_query: str, page: int = 1):
         logger.error(f"JMComic 发生未知错误: {e}")
 
     return None
+
 
 async def search_album_async(client: JmcomicClient, search_query: str, page: int = 1):
     return await asyncio.to_thread(search_album, client, search_query, page)
@@ -124,28 +131,41 @@ def blur_image(image_bytes: BytesIO) -> BytesIO:
 
     return output
 
+
 async def blur_image_async(image_bytes: BytesIO):
     return await asyncio.to_thread(blur_image, image_bytes)
 
+
 # endregion
 
+
 async def send_forward_message(bot: Bot, event: MessageEvent, messages: list):
-    """ 发送合并消息 """
+    """发送合并消息"""
     if isinstance(event, GroupMessageEvent):
-        await bot.call_api("send_group_forward_msg", group_id=event.group_id, messages=messages)
+        await bot.call_api(
+            "send_group_forward_msg", group_id=event.group_id, messages=messages
+        )
     elif isinstance(event, PrivateMessageEvent):
-        await bot.call_api("send_private_forward_msg", user_id=event.user_id, messages=messages)
+        await bot.call_api(
+            "send_private_forward_msg", user_id=event.user_id, messages=messages
+        )
 
 
-#region 权限相关
-async def check_permission(bot: Bot, group_id: int, operator_id: int, target_id: int) -> bool:
+# region 权限相关
+async def check_permission(
+    bot: Bot, group_id: int, operator_id: int, target_id: int
+) -> bool:
     """增减群黑名单权限检查，群主和超管拥有所有权限，管理员只能操作普通成员"""
     if str(operator_id) in bot.config.superusers:
         return True
 
     try:
-        operator_info = await bot.get_group_member_info(group_id=group_id, user_id=operator_id)
-        target_info = await bot.get_group_member_info(group_id=group_id, user_id=target_id)
+        operator_info = await bot.get_group_member_info(
+            group_id=group_id, user_id=operator_id
+        )
+        target_info = await bot.get_group_member_info(
+            group_id=group_id, user_id=target_id
+        )
 
         operator_role = operator_info.get("role")
         target_role = target_info.get("role")
@@ -167,7 +187,6 @@ async def check_permission(bot: Bot, group_id: int, operator_id: int, target_id:
 async def user_not_in_blacklist(bot: Bot, event: MessageEvent) -> bool:
     """检查用户是否在群黑名单中"""
     if isinstance(event, GroupMessageEvent):
-
         group_id = event.group_id
         user_id = event.user_id
 
@@ -176,17 +195,19 @@ async def user_not_in_blacklist(bot: Bot, event: MessageEvent) -> bool:
 
     return True
 
-async def group_is_enabled(bot: Bot, event: MessageEvent) -> bool:
-    """ 检查群是否启用插件功能 """
-    if isinstance(event, GroupMessageEvent):
 
+async def group_is_enabled(bot: Bot, event: MessageEvent) -> bool:
+    """检查群是否启用插件功能"""
+    if isinstance(event, GroupMessageEvent):
         group_id = event.group_id
         if not data_manager.is_group_enabled(group_id):
             return False
 
     return True
 
-#endregion
+
+# endregion
+
 
 def modify_pdf_md5(original_pdf_path, output_path):
     """
@@ -213,7 +234,9 @@ def modify_pdf_md5(original_pdf_path, output_path):
         # 我们在%%EOF之前添加随机内容作为注释
         if content.endswith(b"%%EOF"):
             # 如果PDF以%%EOF结尾，在它前面添加注释
-            modified_content = content[:-5] + b"\n% Random: " + random_bytes + b"\n%%EOF"
+            modified_content = (
+                content[:-5] + b"\n% Random: " + random_bytes + b"\n%%EOF"
+            )
         else:
             # 如果没有，直接在末尾添加注释和EOF标记
             modified_content = content + b"\n% Random: " + random_bytes + b"\n%%EOF"
@@ -226,5 +249,6 @@ def modify_pdf_md5(original_pdf_path, output_path):
     except Exception as e:
         logger.error(f"修改PDF MD5失败: {e}")
         return False
+
 
 check_group_and_user = Rule(group_is_enabled) & Rule(user_not_in_blacklist)

@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import ClassVar
 
 from nonebot import logger, require
 
@@ -11,14 +12,40 @@ from nonebot_plugin_localstore import get_plugin_data_dir
 
 
 class JmComicDataManager:
-    """ 用于管理与 JMComic 插件相关的数据 """
+    """用于管理与 JMComic 插件相关的数据"""
 
-    DEFAULT_RESTRICTED_TAGS = ["獵奇", "重口", "YAOI", "yaoi", "男同", "血腥", "猎奇", "虐杀", "恋尸癖" ]
-    DEFAULT_RESTRICTED_IDS = [
-        "136494", "323666", "350234", "363848", "405848",
-        "454278", "481481", "559716", "611650", "629252",
-        "69658", "626487", "400002", "208092", "253199",
-        "382596", "418600", "279464", "565616", "222458"
+    DEFAULT_RESTRICTED_TAGS: ClassVar[list[str]] = [
+        "獵奇",
+        "重口",
+        "YAOI",
+        "yaoi",
+        "男同",
+        "血腥",
+        "猎奇",
+        "虐杀",
+        "恋尸癖",
+    ]
+    DEFAULT_RESTRICTED_IDS: ClassVar[list[str]] = [
+        "136494",
+        "323666",
+        "350234",
+        "363848",
+        "405848",
+        "454278",
+        "481481",
+        "559716",
+        "611650",
+        "629252",
+        "69658",
+        "626487",
+        "400002",
+        "208092",
+        "253199",
+        "382596",
+        "418600",
+        "279464",
+        "565616",
+        "222458",
     ]
 
     def __init__(self, filename: str = "jmcomic_data.json"):
@@ -36,7 +63,7 @@ class JmComicDataManager:
         self.save()
 
     def _load_data(self):
-        """ 加载数据文件 """
+        """加载数据文件"""
         if self.filepath.exists():
             try:
                 with self.filepath.open("r", encoding="utf-8") as f:
@@ -50,7 +77,7 @@ class JmComicDataManager:
             self.data = {}
 
     def save(self):
-        """ 保存数据到文件 """
+        """保存数据到文件"""
         try:
             with self.filepath.open("w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=4, ensure_ascii=False)
@@ -59,42 +86,42 @@ class JmComicDataManager:
 
     # ------------------- 群文件夹 ID 管理 -------------------
     def set_group_folder_id(self, group_id: int, folder_id: str):
-        """ 设置群文件夹ID """
+        """设置群文件夹ID"""
         group_data = self.data.setdefault(str(group_id), {})
         group_data["folder_id"] = folder_id
         self.save()
 
     def get_group_folder_id(self, group_id: int) -> str | None:
-        """ 获取群文件夹ID """
+        """获取群文件夹ID"""
         group_data = self.data.get(str(group_id), {})
         return group_data.get("folder_id")
 
     # ------------------- 用户下载限制管理 (全局) -------------------
     def get_user_limit(self, user_id: int) -> int:
-        """ 获取用户的当前下载次数"""
+        """获取用户的当前下载次数"""
         user_limits = self.data.setdefault("user_limits", {})
         return user_limits.get(str(user_id), plugin_config.jmcomic_user_limits)
 
     def set_user_limit(self, user_id: int, limit: int):
-        """ 设置用户的下载次数 """
+        """设置用户的下载次数"""
         user_limits = self.data.setdefault("user_limits", {})
         user_limits[str(user_id)] = limit
         self.save()
 
     def increase_user_limit(self, user_id: int, amount: int = 1):
-        """ 增加用户的下载次数 """
+        """增加用户的下载次数"""
         current_limit = self.get_user_limit(user_id)
         self.set_user_limit(user_id, current_limit + amount)
 
     def decrease_user_limit(self, user_id: int, amount: int = 1):
-        """ 减少用户的下载次数，最低为 0 """
+        """减少用户的下载次数，最低为 0"""
         current_limit = self.get_user_limit(user_id)
         new_limit = max(0, current_limit - amount)
         self.set_user_limit(user_id, new_limit)
 
     # ------------------- 群黑名单管理 -------------------
     def add_blacklist(self, group_id: int, user_id: int):
-        """ 添加用户到群黑名单 """
+        """添加用户到群黑名单"""
         group_data = self.data.setdefault(str(group_id), {})
         blacklist = group_data.setdefault("blacklist", [])
         if str(user_id) not in blacklist:
@@ -102,7 +129,7 @@ class JmComicDataManager:
             self.save()
 
     def remove_blacklist(self, group_id: int, user_id: int):
-        """ 从群黑名单移除用户 """
+        """从群黑名单移除用户"""
         group_data = self.data.get(str(group_id), {})
         blacklist = group_data.get("blacklist", [])
         if str(user_id) in blacklist:
@@ -110,24 +137,24 @@ class JmComicDataManager:
             self.save()
 
     def is_user_blacklisted(self, group_id: int, user_id: int) -> bool:
-        """ 检查用户是否在群黑名单中 """
+        """检查用户是否在群黑名单中"""
         group_data = self.data.get(str(group_id), {})
         blacklist = group_data.get("blacklist", [])
         return str(user_id) in blacklist
 
     def list_blacklist(self, group_id: int) -> list[str]:
-        """ 列出当前群的黑名单 """
+        """列出当前群的黑名单"""
         group_data = self.data.get(str(group_id), {})
         return group_data.get("blacklist", [])
 
     # ------------------- 群功能启用管理 -------------------
     def is_group_enabled(self, group_id: int) -> bool:
-        """ 检查群是否启用功能 """
+        """检查群是否启用功能"""
         group_data = self.data.get(str(group_id), {})
         return group_data.get("enabled", self.default_enabled)
 
     def set_group_enabled(self, group_id: int, enabled: bool):
-        """ 设置群功能启用或禁用 """
+        """设置群功能启用或禁用"""
         group_data = self.data.setdefault(str(group_id), {})
         group_data["enabled"] = enabled
         self.save()
@@ -165,31 +192,31 @@ class JmComicDataManager:
 
     # ------------------- 禁止下载: IDs + Tags -------------------
     def add_restricted_jm_id(self, jm_id: str):
-        """ 将指定本子ID加入到禁止下载列表 """
+        """将指定本子ID加入到禁止下载列表"""
         restricted_ids = self.data.setdefault("restricted_ids", [])
         if jm_id not in restricted_ids:
             restricted_ids.append(jm_id)
             self.save()
 
     def is_jm_id_restricted(self, jm_id: str) -> bool:
-        """ 检查某个本子ID是否在禁止列表中 """
+        """检查某个本子ID是否在禁止列表中"""
         restricted_ids = self.data.setdefault("restricted_ids", [])
         return jm_id in restricted_ids
 
     def add_restricted_tag(self, tag: str):
-        """ 将指定标签加入到禁止下载列表 """
+        """将指定标签加入到禁止下载列表"""
         restricted_tags = self.data.setdefault("restricted_tags", [])
         if tag not in restricted_tags:
             restricted_tags.append(tag)
             self.save()
 
     def is_tag_restricted(self, tag: str) -> bool:
-        """ 检查某个标签是否在禁止列表中（忽略大小写的话可再处理） """
+        """检查某个标签是否在禁止列表中（忽略大小写的话可再处理）"""
         restricted_tags = self.data.setdefault("restricted_tags", [])
         return tag in restricted_tags
 
     def has_restricted_tag(self, tags: list[str]) -> bool:
-        """ 给定一系列tags，若与 restricted_tags 有交集，则返回 True """
+        """给定一系列tags，若与 restricted_tags 有交集，则返回 True"""
         restricted_tags = set(self.data.setdefault("restricted_tags", []))
         for t in tags:
             if t in restricted_tags:
@@ -212,6 +239,7 @@ class SearchState:
     def has_more(self) -> bool:
         """检查是否还有更多结果"""
         return self.start_idx < len(self.total_results)
+
 
 class SearchManager:
     def __init__(self, ttl_minutes: int = 30):
@@ -236,8 +264,11 @@ class SearchManager:
 
     def clean_expired(self):
         """清理所有过期的搜索状态"""
-        expired = [uid for uid, state in self.states.items()
-                  if state.is_expired(self.ttl_minutes)]
+        expired = [
+            uid
+            for uid, state in self.states.items()
+            if state.is_expired(self.ttl_minutes)
+        ]
         for uid in expired:
             del self.states[uid]
 

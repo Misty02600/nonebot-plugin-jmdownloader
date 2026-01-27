@@ -15,11 +15,18 @@ class Config(BaseModel):
     jmcomic_username: str | None = Field(default=None, description="JM登录用户名")
     jmcomic_password: str | None = Field(default=None, description="JM登录密码")
     jmcomic_allow_groups: bool = Field(default=False, description="是否默认启用所有群")
-    jmcomic_user_limits: int = Field(default=5, description="每位用户的每周下载限制次数")
-    jmcomic_modify_real_md5: bool = Field(default=False, description="是否真正修改PDF文件的MD5值")
-    jmcomic_blocked_message: str = Field(default="猫猫吃掉了一个不豪吃的本子", description="搜索屏蔽时显示的消息")
-    jmcomic_results_per_page: int = Field(default=20, description="每页显示的搜索结果数量")
-
+    jmcomic_user_limits: int = Field(
+        default=5, description="每位用户的每周下载限制次数"
+    )
+    jmcomic_modify_real_md5: bool = Field(
+        default=False, description="是否真正修改PDF文件的MD5值"
+    )
+    jmcomic_blocked_message: str = Field(
+        default="猫猫吃掉了一个不豪吃的本子", description="搜索屏蔽时显示的消息"
+    )
+    jmcomic_results_per_page: int = Field(
+        default=20, description="每页显示的搜索结果数量"
+    )
 
     @validator("jmcomic_password", "jmcomic_username", pre=True)
     def convert_to_string(cls, v):
@@ -27,13 +34,17 @@ class Config(BaseModel):
             return str(v)
         return v
 
+
 plugin_config = get_plugin_config(Config)
 
 plugin_cache_dir: Path = get_plugin_cache_dir()
 cache_dir = plugin_cache_dir.as_posix()
 
 login_block = ""
-if plugin_config.jmcomic_username is not None and plugin_config.jmcomic_password is not None:
+if (
+    plugin_config.jmcomic_username is not None
+    and plugin_config.jmcomic_password is not None
+):
     login_block = f"""  after_init:
     - plugin: login
       kwargs:

@@ -275,7 +275,7 @@ async def _(bot: Bot, event: MessageEvent, arg: Message = CommandArg()):
     messages = []
     blocked_message = plugin_config.jmcomic_blocked_message
 
-    for photo, avatar in zip(photos, avatars):
+    for photo, avatar in zip(photos, avatars, strict=True):
         if photo is None:
             continue
 
@@ -375,7 +375,7 @@ async def handle_jm_next_page(bot: Bot, event: MessageEvent):
     messages = []
     blocked_message = plugin_config.jmcomic_blocked_message
 
-    for photo, avatar in zip(photos, avatars):
+    for photo, avatar in zip(photos, avatars, strict=True):
         if photo is None:
             continue
 

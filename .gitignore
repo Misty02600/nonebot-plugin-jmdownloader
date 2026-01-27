@@ -236,5 +236,4 @@ junit.xml
 # AI
 instructions/
 AGENT.md
-.gemini/GEMINI.md
 .agent/rules/
