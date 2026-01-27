@@ -1,5 +1,5 @@
 import pytest
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message
 from nonebug import App
 
 
@@ -27,22 +27,12 @@ def make_onebot_msg(message: Message) -> GroupMessageEvent:
 
 
 @pytest.mark.asyncio
-async def test_pip(app: App):
-    import nonebot
+async def test_jm_download(app: App):
     from nonebot import require
-    from nonebot.adapters.onebot.v11 import Adapter as OnebotV11Adapter
 
     assert require("nonebot_plugin_jmdownloader")
 
-    event = make_onebot_msg(Message("pip install nonebot2"))
-    try:
-        from nonebot_plugin_jmdownloader import pip
-    except ImportError:
-        pytest.skip("nonebot_plugin_jmdownloader.pip not found")
+    from nonebot_plugin_jmdownloader import jm_download
 
-    async with app.test_matcher(pip) as ctx:
-        adapter = nonebot.get_adapter(OnebotV11Adapter)
-        bot = ctx.create_bot(base=Bot, adapter=adapter)
-        ctx.receive_event(bot, event)
-        ctx.should_call_send(event, Message("nonebot2"), result=None, bot=bot)
-        ctx.should_finished()
+    # This is a basic sanity test to verify the matcher is loaded correctly
+    assert jm_download is not None
