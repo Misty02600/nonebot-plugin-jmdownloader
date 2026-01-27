@@ -1,0 +1,41 @@
+# git-cliff configuration file
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+# 头部模板
+header = """
+# Changelog\n
+"""
+# 提交信息模板
+body = """
+{% if version -%}
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## [Unreleased]
+{% endif %}
+
+{% for group, commits in commits | group_by(attribute="group") -%}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits -%}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}{{ commit.message | split(pat="\n") | first | trim | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/commit/{{ commit.id }})){% if commit.remote.username %} by @{{ commit.remote.username }}{% endif %}{% if commit.remote.pr_number %} in [#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }}){% endif %}
+{% endfor %}
+
+{% endfor -%}
+"""
+# 移除尾部空白
+trim = true
+# 底部模板
+footer = ""
+# 后处理器
+postprocessors = []
+
+[git]
+# 提交分组
+commit_parsers = [
+    { message = "^feat", group = "✨ Features" },
+    { message = "^fix", group = "🐛 Fixes" },
+]
+# 保护不匹配的破坏性提交
+protect_breaking_commits = true
+# 只保留能被 commit_parsers 匹配到的提交
+filter_commits = true
