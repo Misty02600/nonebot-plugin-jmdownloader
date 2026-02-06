@@ -108,7 +108,8 @@ plugins = ["nonebot_plugin_jmdownloader"]
 |   jmcomic_thread_count   |  否   |   10   |               下载线程数量               |
 |   jmcomic_allow_groups   |  否   | False  |            是否默认启用所有群            |
 |   jmcomic_user_limits    |  否   |   5    |        每位用户的每周下载限制次数        |
-|  jmcomic_output_format   |  否   |  pdf   |         输出格式：pdf、zip 或 7z         |
+|  jmcomic_output_format   |  否   |  pdf   |           输出格式：pdf 或 zip            |
+|  jmcomic_zip_password    |  否   |   无   |    ZIP 压缩包密码（仅 zip 格式有效）     |
 | jmcomic_modify_real_md5  |  否   | False  | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
 | jmcomic_results_per_page |  否   |   20   |          每页显示的搜索结果数量          |
 
@@ -129,8 +130,10 @@ JMCOMIC_PASSWORD=******
 JMCOMIC_ALLOW_GROUPS=False
 # JMComic 每位用户的每周下载限制次数
 JMCOMIC_USER_LIMITS=5
-# JMComic 输出格式：pdf、zip 或 7z
+# JMComic 输出格式：pdf 或 zip
 JMCOMIC_OUTPUT_FORMAT=pdf
+# JMComic ZIP 压缩包密码（仅 zip 格式有效，留空则不加密）
+# JMCOMIC_ZIP_PASSWORD=your_password
 # JMComic 是否修改PDF文件的MD5值（增强防和谐但可能增加流量消耗，仅PDF格式有效）
 JMCOMIC_MODIFY_REAL_MD5=False
 # 每页显示的搜索结果数量，越多每次发送时间越长且越容易被吞，建议40以内
