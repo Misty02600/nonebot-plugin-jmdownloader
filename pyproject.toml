@@ -69,6 +69,7 @@ build-backend = "uv_build"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
+version = "1.0.4"
 tag_format = "v$version"
 version_files = ["pyproject.toml:^version"]
 major_version_zero = true                   # 允许 0.x.x 版本号
