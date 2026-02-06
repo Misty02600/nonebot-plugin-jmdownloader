@@ -107,6 +107,7 @@ plugins = ["nonebot_plugin_jmdownloader"]
 |       jmcomic_log        |  否   | False  | 是否开启JMComic-Crawler-Python的日志输出 |
 |   jmcomic_thread_count   |  否   |   10   |               下载线程数量               |
 |   jmcomic_allow_groups   |  否   | False  |            是否默认启用所有群            |
+|  jmcomic_allow_private   |  否   |  True  |           是否允许私聊使用功能           |
 |   jmcomic_user_limits    |  否   |   5    |        每位用户的每周下载限制次数        |
 | jmcomic_modify_real_md5  |  否   | False  |    是否修改PDF文件的MD5以避免发送失败    |
 | jmcomic_results_per_page |  否   |   20   |          每页显示的搜索结果数量          |
@@ -126,6 +127,8 @@ JMCOMIC_USERNAME=******
 JMCOMIC_PASSWORD=******
 # JMComic 是否默认启用所有群，建议关闭
 JMCOMIC_ALLOW_GROUPS=False
+# JMComic 是否允许私聊使用功能
+JMCOMIC_ALLOW_PRIVATE=True
 # JMComic 每位用户的每周下载限制次数
 JMCOMIC_USER_LIMITS=5
 # JMComic 是否修改PDF文件的MD5值（增强防和谐但可能增加流量消耗）

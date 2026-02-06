@@ -172,4 +172,3 @@ async def target_user_id(matcher: Matcher, arg: Message = CommandArg()) -> int:
 TargetUserId = Annotated[int, Depends(target_user_id)]
 
 # endregion
-

@@ -124,12 +124,12 @@ class TestableDataManager:
     def _save_config(self) -> None:
         encoded = msgspec.json.encode(self.config)
         with atomic_save(str(self.config_path), text_mode=False) as f:
-            f.write(encoded)
+            f.write(encoded)  # type: ignore[union-attr]
 
     def _save_runtime(self) -> None:
         encoded = msgspec.json.encode(self.runtime)
         with atomic_save(str(self.runtime_path), text_mode=False) as f:
-            f.write(encoded)
+            f.write(encoded)  # type: ignore[union-attr]
 
     def _ensure_defaults(self) -> None:
         if not self.config.restricted_tags:
@@ -801,12 +801,12 @@ class MigratableDataManager(TestableDataManager):
 
             encoded_config = msgspec.json.encode(new_config)
             with atomic_save(str(self.config_path), text_mode=False) as f:
-                f.write(encoded_config)
+                f.write(encoded_config)  # type: ignore[union-attr]
 
             if new_runtime.user_limits:
                 encoded_runtime = msgspec.json.encode(new_runtime)
                 with atomic_save(str(self.runtime_path), text_mode=False) as f:
-                    f.write(encoded_runtime)
+                    f.write(encoded_runtime)  # type: ignore[union-attr]
 
             shutil.copy2(legacy_path, backup_path)
             legacy_path.unlink()

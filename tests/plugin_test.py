@@ -36,4 +36,3 @@ async def test_jm_download(app: App):
 
     # This is a basic sanity test to verify the matcher is loaded correctly
     assert jm_download is not None
-
