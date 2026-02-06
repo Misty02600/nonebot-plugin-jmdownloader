@@ -59,6 +59,8 @@ try:
         JMConfig(
             cache_dir=_cache_dir,
             logger=logger,
+            output_format=plugin_config.jmcomic_output_format,
+            zip_password=plugin_config.jmcomic_zip_password,
             log=plugin_config.jmcomic_log,
             proxies=plugin_config.jmcomic_proxies,
             thread_count=plugin_config.jmcomic_thread_count,

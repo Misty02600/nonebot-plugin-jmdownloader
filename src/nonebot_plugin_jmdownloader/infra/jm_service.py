@@ -22,6 +22,7 @@ from jmcomic import (
     create_option_by_str,
 )
 
+from ..core.enums import OutputFormat
 from .pdf_utils import prepare_pdf_with_unique_md5
 
 if TYPE_CHECKING:
@@ -41,6 +42,8 @@ class JMConfig:
 
     cache_dir: str
     logger: Logger
+    output_format: OutputFormat = OutputFormat.PDF
+    zip_password: str | None = None
     log: bool = False
     proxies: str = "system"
     thread_count: int = 10
@@ -75,6 +78,39 @@ def create_jm_service(config: JMConfig) -> "JMService":
         password: {quote(config.password)}
 """
 
+    # 根据输出格式构建插件配置
+    match config.output_format:
+        case OutputFormat.PDF:
+            plugin_block = f"""  after_photo:
+    - plugin: img2pdf
+      kwargs:
+        pdf_dir: {quote(config.cache_dir)}
+        filename_rule: Pid
+"""
+        case OutputFormat.ZIP:
+            encrypt_block = ""
+            if config.zip_password:
+                encrypt_block = f"""
+        encrypt:
+          password: {quote(config.zip_password)}"""
+            plugin_block = f"""  after_photo:
+    - plugin: zip
+      kwargs:
+        zip_dir: {quote(config.cache_dir)}
+        filename_rule: Pid
+        level: photo
+        suffix: zip
+        delete_original_file: true{encrypt_block}
+"""
+        case _:
+            # 默认 PDF
+            plugin_block = f"""  after_photo:
+    - plugin: img2pdf
+      kwargs:
+        pdf_dir: {quote(config.cache_dir)}
+        filename_rule: Pid
+"""
+
     yaml_config = f"""\
 log: {config.log}
 
@@ -96,12 +132,7 @@ dir_rule:
   rule: Bd_Pid
 
 plugins:
-{login_block}  after_photo:
-    - plugin: img2pdf
-      kwargs:
-        pdf_dir: {quote(config.cache_dir)}
-        filename_rule: Pid
-"""
+{login_block}{plugin_block}"""
 
     option = create_option_by_str(yaml_config, mode="yml")
     return JMService(
@@ -109,6 +140,7 @@ plugins:
         JmDownloader(option),
         Path(config.cache_dir),
         config.logger,
+        config.output_format,
         config.modify_md5,
     )
 
@@ -126,7 +158,8 @@ class JMService:
         downloader: JM 下载器
         cache_dir: 缓存目录
         logger: 日志器
-        modify_md5: 是否修改 MD5
+        output_format: 输出格式 ("pdf" | "zip")
+        modify_md5: 是否修改 MD5（仅 PDF 格式有效）
     """
 
     def __init__(
@@ -135,12 +168,14 @@ class JMService:
         downloader: JmDownloader,
         cache_dir: Path,
         logger: Logger,
+        output_format: OutputFormat = OutputFormat.PDF,
         modify_md5: bool = False,
     ):
         self._client = client
         self._downloader = downloader
         self._cache_dir = cache_dir
         self._logger = logger
+        self._output_format = output_format
         self._modify_md5 = modify_md5
 
     # region 获取本子信息
@@ -186,6 +221,12 @@ class JMService:
 
         def _sync() -> bool:
             try:
+                # 清理上次下载残留的全部状态（单例复用时防止无限累积）
+                # - download_success_dict: 防止 ZipPlugin 遍历旧记录操作已删除文件
+                # - download_failed_image/photo: 防止失败记录跨任务累积导致内存泄漏
+                self._downloader.download_success_dict.clear()
+                self._downloader.download_failed_image.clear()
+                self._downloader.download_failed_photo.clear()
                 with self._downloader as dler:
                     dler.download_by_photo_detail(photo)
                 return True
@@ -195,30 +236,49 @@ class JMService:
 
         return await asyncio.to_thread(_sync)
 
-    async def prepare_photo_pdf(self, photo: JmPhotoDetail) -> str | None:
-        """下载并准备 PDF 文件
+    async def prepare_photo_file(self, photo: JmPhotoDetail) -> tuple[str, str] | None:
+        """下载并准备输出文件
 
         Args:
             photo: JmPhotoDetail 对象
 
         Returns:
-            PDF 文件路径，失败返回 None
+            (文件路径, 文件扩展名) 元组，失败返回 None
         """
-        pdf_path = self._cache_dir / f"{photo.id}.pdf"
+        # 根据输出格式确定文件扩展名
+        match self._output_format:
+            case OutputFormat.PDF:
+                ext = ".pdf"
+            case OutputFormat.ZIP:
+                ext = ".zip"
+            case _:
+                ext = ".pdf"
+
+        file_path = self._cache_dir / f"{photo.id}{ext}"
 
         # 下载（如果不存在）
-        if not pdf_path.exists():
+        if not file_path.exists():
             success = await self.download_photo(photo)
             if not success:
                 return None
+            # 验证输出文件确实已生成（插件可能失败）
+            if not file_path.exists():
+                self._logger.error(
+                    f"下载后输出文件不存在: {file_path}，"
+                    f"可能是 {self._output_format} 插件执行失败"
+                )
+                return None
 
-        # 可选的 MD5 修改
-        if self._modify_md5:
-            return await prepare_pdf_with_unique_md5(
-                str(pdf_path), str(self._cache_dir), str(photo.id)
+        # 可选的 MD5 修改（仅 PDF 格式有效）
+        if self._output_format == OutputFormat.PDF and self._modify_md5:
+            modified_path = await prepare_pdf_with_unique_md5(
+                str(file_path), str(self._cache_dir), str(photo.id)
             )
+            if modified_path is None:
+                return None
+            return (modified_path, ext)
 
-        return str(pdf_path)
+        return (str(file_path), ext)
 
     # endregion
 

@@ -9,6 +9,7 @@ from nonebot import on_command
 from nonebot.adapters.onebot.v11 import (
     ActionFailed,
     Bot,
+    GroupMessageEvent,
     Message,
     MessageEvent,
     MessageSegment,
@@ -19,7 +20,20 @@ from ...infra import blur_image_async
 from .. import DataManagerDep, JmServiceDep, SessionsDep
 from ..dependencies import ArgText, RandomNickname
 from ..nonebot_utils import send_forward_msg
-from .common import group_enabled_check, private_enabled_check
+
+# region 前置检查 handler
+
+
+async def group_enabled_check(
+    event: GroupMessageEvent, matcher: Matcher, dm: DataManagerDep
+):
+    """群聊启用检查：群未启用则静默终止（仅群聊触发）"""
+    group = dm.get_group(event.group_id)
+    if not group.is_enabled(dm.default_enabled):
+        await matcher.finish()
+
+
+# endregion
 
 # region 辅助函数
 
@@ -192,9 +206,8 @@ jm_search = on_command(
     aliases={"JM搜索"},
     block=True,
     handlers=[
-        private_enabled_check,  # 1. 私聊功能开关检查（仅私聊，禁用时静默终止）
-        group_enabled_check,  # 2. 群聊启用检查（仅群聊，未启用静默终止）
-        search_handler,  # 3. 搜索处理（群聊和私聊都触发）
+        group_enabled_check,  # 1. 群聊启用检查（仅群聊，未启用静默终止）
+        search_handler,  # 2. 搜索处理（群聊和私聊都触发）
     ],
 )
 
@@ -203,9 +216,8 @@ jm_next_page = on_command(
     aliases={"JM下一页"},
     block=True,
     handlers=[
-        private_enabled_check,  # 1. 私聊功能开关检查（仅私聊，禁用时静默终止）
-        group_enabled_check,  # 2. 群聊启用检查（仅群聊，未启用静默终止）
-        next_page_handler,  # 3. 下一页处理（群聊和私聊都触发）
+        group_enabled_check,  # 1. 群聊启用检查（仅群聊，未启用静默终止）
+        next_page_handler,  # 2. 下一页处理（群聊和私聊都触发）
     ],
 )
 

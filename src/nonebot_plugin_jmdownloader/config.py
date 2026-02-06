@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, Field, field_validator
 
+from .core.enums import OutputFormat
+
 
 class PluginConfig(BaseModel):
     """插件配置"""
@@ -12,13 +14,19 @@ class PluginConfig(BaseModel):
     jmcomic_thread_count: int = Field(default=10, description="下载线程数量")
     jmcomic_username: str | None = Field(default=None, description="JM登录用户名")
     jmcomic_password: str | None = Field(default=None, description="JM登录密码")
+    jmcomic_output_format: OutputFormat = Field(
+        default=OutputFormat.PDF,
+        description="输出格式：pdf 或 zip",
+    )
+    jmcomic_zip_password: str | None = Field(
+        default=None, description="ZIP 压缩包密码（仅 ZIP 格式有效，需安装 pyzipper）"
+    )
     jmcomic_modify_real_md5: bool = Field(
-        default=False, description="是否修改PDF的MD5值"
+        default=False, description="是否修改PDF的MD5值（仅PDF格式有效）"
     )
 
     # 数据管理
     jmcomic_allow_groups: bool = Field(default=False, description="是否默认启用所有群")
-    jmcomic_allow_private: bool = Field(default=True, description="是否允许私聊功能")
     jmcomic_user_limits: int = Field(
         default=5, description="每位用户的每周下载限制次数"
     )

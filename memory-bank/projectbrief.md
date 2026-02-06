@@ -39,7 +39,7 @@ nonebot-plugin-jmdownloader
 - 需要在 QQ 群中提供漫画下载服务的群主/管理员
 
 ## 技术约束
-- Python 3.10+
+- Python 3.11+
 - NoneBot2 2.4.2+
 - OneBot V11 适配器
 - 依赖 jmcomic 库进行漫画下载
