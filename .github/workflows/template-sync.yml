@@ -19,7 +19,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Sync template
+      - name: Sync template (no auto conflict choice)
         uses: AndreasAugustin/actions-template-sync@v2
         with:
           target_gh_token: ${{ secrets.TEMPLATE_SYNC_PAT }}

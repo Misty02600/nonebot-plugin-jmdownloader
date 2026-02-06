@@ -1,27 +1,17 @@
 <div align="center">
     <a href="https://v2.nonebot.dev/store">
-    <img src="https://raw.githubusercontent.com/fllesser/nonebot-plugin-template/refs/heads/resource/.docs/NoneBotPlugin.svg" width="300" alt="logo"></a>
-</div>
-
-
-<div align="center">
+    <img src="https://github.com/Misty02600/nonebot-plugin-template/releases/download/assets/NoneBotPlugin.png" width="310" alt="logo"></a>
 
 ## ✨ *基于 Nonebot2 的 JMComic 插件* ✨
 
-<a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/Misty02600/nonebot-plugin-jmdownloader.svg" alt="license">
-</a>
-<a href="https://pypi.python.org/pypi/nonebot-plugin-jmdownloader">
-    <img src="https://img.shields.io/pypi/v/nonebot-plugin-jmdownloader.svg" alt="pypi">
-</a>
-<img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="python">
-<a href="https://github.com/astral-sh/ruff">
-    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json" alt="ruff">
-</a>
-<a href="https://github.com/astral-sh/uv">
-    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv">
-</a>
-</div>
+[![LICENSE](https://img.shields.io/github/license/Misty02600/nonebot-plugin-jmdownloader.svg)](./LICENSE)
+[![pypi](https://img.shields.io/pypi/v/nonebot-plugin-jmdownloader.svg)](https://pypi.python.org/pypi/nonebot-plugin-jmdownloader)
+[![python](https://img.shields.io/badge/python-3.10+-blue.svg?logo=python&logoColor=white)](https://www.python.org)
+[![Adapters](https://img.shields.io/badge/Adapters-OneBot%20v11-blue)](#supported-adapters)
+<br/>
+
+[![uv](https://img.shields.io/badge/package%20manager-uv-black?logo=uv)](https://github.com/astral-sh/uv)
+[![ruff](https://img.shields.io/badge/code%20style-ruff-black?logo=ruff)](https://github.com/astral-sh/ruff)
 
 </div>
 
@@ -109,18 +99,18 @@ plugins = ["nonebot_plugin_jmdownloader"]
 
 在 NoneBot2 项目的`.env`文件中添加下表中的必填配置
 
-| 配置项            | 必填  | 默认值 |             说明               |
-| :---------------: | :---: | :----: | :----------------------------: |
-| jmcomic_username  |  否   |   无   | JM登录用户名       |
-| jmcomic_password  |  否   |   无   | JM登录密码         |
-| jmcomic_proxies   |  否   | system | 网络代理地址                   |
-| jmcomic_log       |  否   | False  | 是否开启JMComic-Crawler-Python的日志输出               |
-| jmcomic_thread_count | 否 |   10   | 下载线程数量                   |
-| jmcomic_allow_groups | 否 |   False   | 是否默认启用所有群                   |
-| jmcomic_user_limits | 否 |   5   | 每位用户的每周下载限制次数                   |
-| jmcomic_modify_real_md5 | 否 | False | 是否修改PDF文件的MD5以避免发送失败 |
-| jmcomic_blocked_message | 否 | "猫猫吃掉了一个不豪吃的本子" | 搜索到屏蔽本子时的替代消息 |
-| jmcomic_results_per_page | 否 | 20 | 每页显示的搜索结果数量 |
+|          配置项          | 必填  | 默认值 |                   说明                   |
+| :----------------------: | :---: | :----: | :--------------------------------------: |
+|     jmcomic_username     |  否   |   无   |               JM登录用户名               |
+|     jmcomic_password     |  否   |   无   |                JM登录密码                |
+|     jmcomic_proxies      |  否   | system |               网络代理地址               |
+|       jmcomic_log        |  否   | False  | 是否开启JMComic-Crawler-Python的日志输出 |
+|   jmcomic_thread_count   |  否   |   10   |               下载线程数量               |
+|   jmcomic_allow_groups   |  否   | False  |            是否默认启用所有群            |
+|   jmcomic_user_limits    |  否   |   5    |        每位用户的每周下载限制次数        |
+| jmcomic_modify_real_md5  |  否   | False  |    是否修改PDF文件的MD5以避免发送失败    |
+| jmcomic_results_per_page |  否   |   20   |          每页显示的搜索结果数量          |
+
 
 **示例：**
 ```yaml
@@ -140,37 +130,37 @@ JMCOMIC_ALLOW_GROUPS=False
 JMCOMIC_USER_LIMITS=5
 # JMComic 是否修改PDF文件的MD5值（增强防和谐但可能增加流量消耗）
 JMCOMIC_MODIFY_REAL_MD5=False
-# 搜索到屏蔽本子时的替代消息
-JMCOMIC_BLOCKED_MESSAGE="猫猫吃掉了一个不豪吃的本子"
 # 每页显示的搜索结果数量，越多每次发送时间越长且越容易被吞，建议40以内
 JMCOMIC_RESULTS_PER_PAGE=20
 ```
 
-
+> [!IMPORTANT]
+> `JMCOMIC_BLOCKED_MESSAGE` 配置项已在新版本中移除，现在会读取nickname发送屏蔽本子的代替消息
 
 ## 🎉 使用
 ### 指令表
-|      指令      |     权限     | 需要@ |   范围   |                  说明                  |
-| :------------: | :----------: | :---: | :------: | :------------------------------------: |
-|   jm下载 [id]    |  群员  |  否   | 群聊/私聊| 下载指定的 JMComic 本子到群文件或私聊  |
-|   jm查询 [id]    |  群员  |  否   | 群聊/私聊| 查询指定的 JMComic 本子信息   |
-|  jm搜索 [关键词] |  群员  |  否   | 群聊/私聊| 搜索 JMComic 网站的漫画并返回列表     |
-|  jm下一页      |  群员  |  否   | 群聊/私聊| 显示搜索结果的下一页     |
-|  jm设置文件夹 [文件夹名]|  管理员  |  否   | 群聊| 设置群聊内本子的上传文件夹     |
-| jm拉黑 [@用户] | 管理员 | 否 | 群聊 | 将用户加入当前群的黑名单 |
-| jm解除拉黑 [@用户] | 管理员 | 否 | 群聊 | 将用户移出当前群的黑名单 |
-| jm黑名单 | 管理员 | 否 | 群聊 | 列出当前群的黑名单列表 |
-| jm启用群 [群号]  |     超级用户     |  否   | 群聊/私聊| 启用指定群的插件功能，可用空格隔开多个群号，以下同理                 |
-| jm禁用群 [群号]  |     超级用户     |  否   | 群聊/私聊| 禁用指定群的插件功能                 |
-| 开启jm         |     超级用户     |  否   | 群聊     | 启用本群的插件功能                   |
-| 关闭jm         | 管理员 |  否   | 群聊     | 禁用本群的插件功能，管理员和群主**只能关不能开**                   |
-| jm禁用id [id]   |     超级用户     |  否   | 群聊/私聊| 禁止指定jm号的本子下载，可用空格隔开多个id，以下同理          |
-| jm禁用tag [tag]  |     超级用户     |  否   | 群聊/私聊| 禁止带有指定tag的本子下载 |
+|          指令           |   权限   | 需要@ |   范围    |                         说明                         |
+| :---------------------: | :------: | :---: | :-------: | :--------------------------------------------------: |
+|       jm下载 [id]       |   群员   |  否   | 群聊/私聊 |        下载指定的 JMComic 本子到群文件或私聊         |
+|       jm查询 [id]       |   群员   |  否   | 群聊/私聊 |             查询指定的 JMComic 本子信息              |
+|     jm搜索 [关键词]     |   群员   |  否   | 群聊/私聊 |          搜索 JMComic 网站的漫画并返回列表           |
+|        jm下一页         |   群员   |  否   | 群聊/私聊 |                 显示搜索结果的下一页                 |
+| jm设置文件夹 [文件夹名] |  管理员  |  否   |   群聊    |              设置群聊内本子的上传文件夹              |
+|     jm拉黑 [@用户]      |  管理员  |  否   |   群聊    |               将用户加入当前群的黑名单               |
+|   jm解除拉黑 [@用户]    |  管理员  |  否   |   群聊    |               将用户移出当前群的黑名单               |
+|        jm黑名单         |  管理员  |  否   |   群聊    |                列出当前群的黑名单列表                |
+|     jm启用群 [群号]     | 超级用户 |  否   | 群聊/私聊 | 启用指定群的插件功能，可用空格隔开多个群号，以下同理 |
+|     jm禁用群 [群号]     | 超级用户 |  否   | 群聊/私聊 |                 禁用指定群的插件功能                 |
+|         开启jm          | 超级用户 |  否   |   群聊    |                  启用本群的插件功能                  |
+|         关闭jm          |  管理员  |  否   |   群聊    |   禁用本群的插件功能，管理员和群主**只能关不能开**   |
+|      jm禁用id [id]      | 超级用户 |  否   | 群聊/私聊 | 禁止指定jm号的本子下载，可用空格隔开多个id，以下同理 |
+|     jm禁用tag [tag]     | 超级用户 |  否   | 群聊/私聊 |              禁止带有指定tag的本子下载               |
 
 - 设置文件夹需要协议端API支持，bot会先读取群内是否有该文件夹，如果没有会尝试创建。
 - Bot会在每天凌晨3点清理缓存文件夹。
 - 默认已经屏蔽了一些常见的令人不适的本子，可以在数据储存文件里自行修改。
-- 被屏蔽的本子会在搜索结果中隐藏，下载被屏蔽的本子会被bot尝试禁言并加入本群黑名单！
+- 被屏蔽的本子会在搜索结果中隐藏，下载被屏蔽的本子会被bot尝试禁言并加入本群黑名单。
+- **命令需要添加 COMMAND_START 前缀**
 
 ### 🎨 效果图
 ![search](img/search.png)

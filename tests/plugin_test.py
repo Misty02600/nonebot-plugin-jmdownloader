@@ -32,7 +32,7 @@ async def test_jm_download(app: App):
 
     assert require("nonebot_plugin_jmdownloader")
 
-    from nonebot_plugin_jmdownloader import jm_download
+    from nonebot_plugin_jmdownloader.bot.handlers.download import jm_download
 
     # This is a basic sanity test to verify the matcher is loaded correctly
     assert jm_download is not None
