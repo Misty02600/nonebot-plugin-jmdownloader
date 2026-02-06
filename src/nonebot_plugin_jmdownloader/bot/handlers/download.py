@@ -19,17 +19,9 @@ from nonebot.permission import SUPERUSER
 
 from .. import DataManagerDep, JmServiceDep
 from ..dependencies import Photo
+from .common import group_enabled_check, private_enabled_check
 
 # region 前置检查 handler
-
-
-async def group_enabled_check(
-    event: GroupMessageEvent, matcher: Matcher, dm: DataManagerDep
-):
-    """群聊启用检查：群未启用则静默终止（仅群聊触发）"""
-    group = dm.get_group(event.group_id)
-    if not group.is_enabled(dm.default_enabled):
-        await matcher.finish()
 
 
 async def user_blacklist_check(
@@ -197,13 +189,14 @@ jm_download = on_command(
     aliases={"JM下载"},
     block=True,
     handlers=[
-        group_enabled_check,  # 1. 群聊启用检查（仅群聊，未启用静默终止）
-        user_blacklist_check,  # 2. 群聊黑名单检查（仅群聊）
-        download_limit_check,  # 3. 下载次数检查（群聊和私聊）
-        photo_restriction_check,  # 4. 内容限制检查（仅群聊）
-        consume_and_notify,  # 5. 扣次数 + 通知（群聊和私聊）
-        group_download_and_upload,  # 6. 下载 + 上传群文件（仅群聊）
-        private_download_and_upload,  # 7. 下载 + 上传私聊文件（仅私聊）
+        private_enabled_check,  # 1. 私聊功能开关检查（仅私聊，禁用时静默终止）
+        group_enabled_check,  # 2. 群聊启用检查（仅群聊，未启用静默终止）
+        user_blacklist_check,  # 3. 群聊黑名单检查（仅群聊）
+        download_limit_check,  # 4. 下载次数检查（群聊和私聊）
+        photo_restriction_check,  # 5. 内容限制检查（仅群聊）
+        consume_and_notify,  # 6. 扣次数 + 通知（群聊和私聊）
+        group_download_and_upload,  # 7. 下载 + 上传群文件（仅群聊）
+        private_download_and_upload,  # 8. 下载 + 上传私聊文件（仅私聊）
     ],
 )
 
