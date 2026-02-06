@@ -9,23 +9,23 @@
 
 ### 关键依赖
 
-| 包名 | 版本范围 | 用途 |
-|------|---------|------|
-| jmcomic | >=2.5.35 | JMComic API 和下载功能 |
-| httpx | >=0.27.0,<1.0.0 | 异步 HTTP 请求 |
-| pillow | >=11.1.0 | 图片处理（模糊效果） |
-| img2pdf | >=0.6.0 | PDF 生成 |
-| pydantic | (via nonebot2) | 配置验证 |
+| 包名     | 版本范围        | 用途                   |
+| -------- | --------------- | ---------------------- |
+| jmcomic  | >=2.5.35        | JMComic API 和下载功能 |
+| httpx    | >=0.27.0,<1.0.0 | 异步 HTTP 请求         |
+| pillow   | >=11.1.0        | 图片处理（模糊效果）   |
+| img2pdf  | >=0.6.0         | PDF 生成               |
+| pydantic | (via nonebot2)  | 配置验证               |
 
 ### NoneBot2 插件依赖
 
-| 插件 | 用途 |
-|------|------|
-| nonebot-plugin-localstore | 本地数据存储路径管理 |
+| 插件                       | 用途                 |
+| -------------------------- | -------------------- |
+| nonebot-plugin-localstore  | 本地数据存储路径管理 |
 | nonebot-plugin-apscheduler | 定时任务（缓存清理） |
-| nonebot-plugin-alconna | 命令解析增强 |
-| nonebot-plugin-waiter | 用户交互等待 |
-| nonebot-plugin-uninfo | 会话信息获取 |
+| nonebot-plugin-alconna     | 命令解析增强         |
+| nonebot-plugin-waiter      | 用户交互等待         |
+| nonebot-plugin-uninfo      | 会话信息获取         |
 
 ## 开发环境
 
@@ -65,18 +65,17 @@ nonebot-plugin-jmdownloader/
 
 ### 环境变量配置 (.env)
 
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| JMCOMIC_LOG | bool | False | JMComic 日志开关 |
-| JMCOMIC_PROXIES | str | system | 代理配置 |
-| JMCOMIC_THREAD_COUNT | int | 10 | 下载线程数 |
-| JMCOMIC_USERNAME | str | None | JM 登录用户名 |
-| JMCOMIC_PASSWORD | str | None | JM 登录密码 |
-| JMCOMIC_ALLOW_GROUPS | bool | False | 默认启用所有群 |
-| JMCOMIC_USER_LIMITS | int | 5 | 每周下载限制 |
-| JMCOMIC_MODIFY_REAL_MD5 | bool | False | 修改 PDF MD5 |
-| JMCOMIC_BLOCKED_MESSAGE | str | "猫猫吃掉了一个不豪吃的本子" | 屏蔽提示消息 |
-| JMCOMIC_RESULTS_PER_PAGE | int | 20 | 搜索分页数量 |
+| 配置项                   | 类型 | 默认值 | 说明             |
+| ------------------------ | ---- | ------ | ---------------- |
+| JMCOMIC_LOG              | bool | False  | JMComic 日志开关 |
+| JMCOMIC_PROXIES          | str  | system | 代理配置         |
+| JMCOMIC_THREAD_COUNT     | int  | 10     | 下载线程数       |
+| JMCOMIC_USERNAME         | str  | None   | JM 登录用户名    |
+| JMCOMIC_PASSWORD         | str  | None   | JM 登录密码      |
+| JMCOMIC_ALLOW_GROUPS     | bool | False  | 默认启用所有群   |
+| JMCOMIC_USER_LIMITS      | int  | 5      | 每周下载限制     |
+| JMCOMIC_MODIFY_REAL_MD5  | bool | False  | 修改 PDF MD5     |
+| JMCOMIC_RESULTS_PER_PAGE | int  | 20     | 搜索分页数量     |
 
 ## 数据存储
 

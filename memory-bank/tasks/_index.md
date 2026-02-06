@@ -6,10 +6,61 @@
 *当前没有进行中的任务*
 
 ## Pending
-*当前没有待处理的任务*
+- [TASK018] 简化解除拉黑权限 - 群主/管理员可直接解除任何人的拉黑
+- [TASK016] 数据文件损坏时的容错处理 - 备份损坏文件并返回默认值
+- [TASK015] JmDownloader 单例状态泄漏 - 每次下载创建新实例避免内存泄漏
+- [TASK014] 下载失败不扣减额度 - 额度应在下载成功后才扣减
+- [TASK013] 群启用检查改为事件处理 - 群未启用时发送提示词而非静默忽略
+- [TASK012] 违规下载惩罚配置 - 控制下载黑名单内容时是否禁言+拉黑
+- [TASK010] 私聊下载开关配置 - 新增配置控制是否允许私聊功能
+- [TASK009] 支持压缩包格式下载 - 使用 jmcomic zip 插件支持 zip/7z 格式
+- [TASK008] 群启用黑白名单模式 - 改进群启用逻辑，支持黑白名单模式切换
+- [TASK007] 群级别内容屏蔽 - 将全局屏蔽改为群独立配置
 
 ## Completed
-*当前没有已完成的任务记录*
+- [TASK017] 合并重复命令 Matcher - 完成于 2026-02-06
+  - 合并群聊/私聊 matcher 为单一 matcher
+  - 使用 handler 参数类型注解实现自动分发
+  - 移除 GroupRule，改用 `matcher.finish()` 静默终止
+  - 114 tests passed
+- [TASK011] Handlers 前置检查模式重构 - 完成于 2026-02-05
+  - 删除 `bot/params.py`、`bot/checks.py`、`bot/utils.py`
+  - 创建 `bot/nonebot_utils.py`：通用工具函数
+  - 创建 `bot/handlers/dependencies.py`：参数解析依赖 + GroupRule
+  - 创建 `bot/handlers/common_handlers.py`：前置检查 handler
+  - `format_photo_info` 移入 JMService 类
+  - 日志格式统一
+  - All checks passed
+- [TASK006] 项目架构重构 - 完成于 2026-01-31
+  - 分层架构 (core/infra/bot)
+  - Service 设计模式（方案 B）
+  - `GlobalConfig` → `RestrictionConfig` 重命名
+  - JMService 简化（移除兼容函数）
+  - 权限模块移至应用层
+  - 41 tests passed
+- [TASK005] 重构指令处理函数 - 完成于 2026-01-29
+  - 拆分群聊/私聊 handler（jm_download, jm_query, jm_search, jm_next_page）
+  - 提取公共逻辑到辅助函数
+  - 41 tests passed
+- [TASK004] 依赖注入系统 - 完成于 2026-01-29
+  - 创建 `dependencies.py` 集中管理实例化和依赖
+  - 实现 `GroupConfigDep` 和 `GroupRule`
+  - 41 tests passed
+- [TASK003] 重构插件结构 - 完成于 2026-01-28
+  - 创建 `handlers.py` 模块（709 行）
+  - `__init__.py` 简化为入口点（76 行）
+  - 41 tests passed
+- [TASK002] 重构翻页缓存 - 完成于 2026-01-28
+  - 创建 `session.py` 模块
+  - `SearchSession` 封装翻页逻辑
+  - `SessionManager` 使用 TTLCache 管理会话
+  - 41 tests passed
+- [TASK001] 重构数据管理器 - 完成于 2026-01-28
+  - 使用 msgspec 进行序列化
+  - 使用 boltons.fileutils.atomic_save 确保原子写入
+  - 简化 DataManager，删除便捷方法
+  - 使用 @cache 装饰 get_group
+  - 41 tests passed
 
 ## Abandoned
 *当前没有已废弃的任务*

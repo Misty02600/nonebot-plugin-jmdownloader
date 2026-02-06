@@ -22,11 +22,8 @@ jobs:
       - name: Sync template (no auto conflict choice)
         uses: AndreasAugustin/actions-template-sync@v2
         with:
+          target_gh_token: ${{ secrets.TEMPLATE_SYNC_PAT }}
           source_repo_path: Misty02600/nonebot-plugin-template
           upstream_branch: main
           pr_labels: template_sync
-
-          # Git 拉取参数配置：
-          # --allow-unrelated-histories: 允许同步历史不相关的仓库（通过模板创建的项目通常没有共享git历史）
-          # --squash: 将模板的变更压缩为一个提交，保持下游仓库历史整洁
           git_remote_pull_params: "--allow-unrelated-histories --squash"
