@@ -6,6 +6,15 @@
 
 ## 最近变更
 
+- **2026-02-06**: TASK009 深度优化 + Bug 修复
+  - ✅ `OutputFormat` 移至 `core/enums.py`（领域概念独立）
+  - ✅ 移除 `SEVENZIP`（jmcomic `open_zip_file` 在无 encrypt 时用 zipfile 而非 py7zr）
+  - ✅ 添加 `jmcomic_zip_password` 配置 + YAML encrypt 块条件生成
+  - ✅ 添加 `pyzipper>=0.3.6` 依赖（轻量 AES 加密）
+  - ✅ 修复 `download_success_dict` 状态泄漏（每次下载前 `.clear()`）
+  - ✅ 修复下载后不验证输出文件（`file_path.exists()` 检查）
+  - ✅ 完成 ZipPlugin 错误行为调研（`call_all_plugin(safe=True)` 吞异常）
+
 - **2026-02-06**: 代码清理与配置精简
   - ✅ 移除 `JMCOMIC_BLOCKED_MESSAGE` 配置项
   - ✅ 移除 `yaml` 依赖，改用手动字符串引用函数
@@ -37,7 +46,7 @@
 
 ### 中优先级
 - [TASK016] 数据文件损坏时的容错处理 - 备份损坏文件并返回默认值
-- [TASK015] JmDownloader 单例状态泄漏 - 每次下载创建新实例避免内存泄漏
+- [TASK015] JmDownloader 单例状态泄漏 - 已部分缓解(clear dict)，仍需新实例化方案
 
 ### 低优先级
 - [TASK013] 群启用检查改为事件处理
@@ -53,6 +62,10 @@
 2. **限制逻辑**: 按**标签名**统一比较
 3. **YAML 安全**: 使用手动 `quote()` 函数（单引号包裹 + 转义）替代 yaml 依赖
 4. **依赖注入**: infra 层通过参数接收 logger，不直接导入 NoneBot
+
+5. **jmcomic 插件异常处理**: `call_all_plugin(safe=True)` 吞掉所有异常（仅 traceback），
+   插件失败不会抛到调用方。检测失败的唯一方式是验证输出文件存在性。
+6. **ZIP 加密**: 通过 `pyzipper` 实现 AES-128，jmcomic `ZipPlugin.open_zip_file()` 在有 `encrypt_dict` 时自动使用
 
 ### 已确定的设计决策
 

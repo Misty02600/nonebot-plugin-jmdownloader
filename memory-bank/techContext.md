@@ -3,7 +3,7 @@
 ## 技术栈
 
 ### 核心框架
-- **Python**: 3.10+ (使用类型注解、dataclass 等现代特性)
+- **Python**: 3.11+ (使用 StrEnum、match case 等现代特性)
 - **NoneBot2**: 2.4.2+ (异步机器人框架)
 - **OneBot V11**: QQ 协议适配器
 
@@ -11,7 +11,8 @@
 
 | 包名     | 版本范围        | 用途                   |
 | -------- | --------------- | ---------------------- |
-| jmcomic  | >=2.5.35        | JMComic API 和下载功能 |
+| jmcomic  | >=2.6.0         | JMComic API 和下载功能 |
+| pyzipper | >=0.3.6         | ZIP AES 加密（可选）   |
 | httpx    | >=0.27.0,<1.0.0 | 异步 HTTP 请求         |
 | pillow   | >=11.1.0        | 图片处理（模糊效果）   |
 | img2pdf  | >=0.6.0         | PDF 生成               |
@@ -65,24 +66,25 @@ nonebot-plugin-jmdownloader/
 
 ### 环境变量配置 (.env)
 
-| 配置项                   | 类型 | 默认值 | 说明             |
-| ------------------------ | ---- | ------ | ---------------- |
-| JMCOMIC_LOG              | bool | False  | JMComic 日志开关 |
-| JMCOMIC_PROXIES          | str  | system | 代理配置         |
-| JMCOMIC_THREAD_COUNT     | int  | 10     | 下载线程数       |
-| JMCOMIC_USERNAME         | str  | None   | JM 登录用户名    |
-| JMCOMIC_PASSWORD         | str  | None   | JM 登录密码      |
-| JMCOMIC_ALLOW_GROUPS     | bool | False  | 默认启用所有群   |
-| JMCOMIC_ALLOW_PRIVATE    | bool | True   | 允许私聊功能     |
-| JMCOMIC_USER_LIMITS      | int  | 5      | 每周下载限制     |
-| JMCOMIC_MODIFY_REAL_MD5  | bool | False  | 修改 PDF MD5     |
-| JMCOMIC_RESULTS_PER_PAGE | int  | 20     | 搜索分页数量     |
+| 配置项                   | 类型 | 默认值 | 说明                      |
+| ------------------------ | ---- | ------ | ------------------------- |
+| JMCOMIC_LOG              | bool | False  | JMComic 日志开关          |
+| JMCOMIC_PROXIES          | str  | system | 代理配置                  |
+| JMCOMIC_THREAD_COUNT     | int  | 10     | 下载线程数                |
+| JMCOMIC_USERNAME         | str  | None   | JM 登录用户名             |
+| JMCOMIC_PASSWORD         | str  | None   | JM 登录密码               |
+| JMCOMIC_ALLOW_GROUPS     | bool | False  | 默认启用所有群            |
+| JMCOMIC_OUTPUT_FORMAT    | str  | pdf    | 输出格式：pdf 或 zip      |
+| JMCOMIC_ZIP_PASSWORD     | str  | None   | ZIP 加密密码（需 pyzipper）|
+| JMCOMIC_USER_LIMITS      | int  | 5      | 每周下载限制              |
+| JMCOMIC_MODIFY_REAL_MD5  | bool | False  | 修改 PDF MD5（仅PDF有效） |
+| JMCOMIC_RESULTS_PER_PAGE | int  | 20     | 搜索分页数量              |
 
 ## 数据存储
 
 ### 缓存目录
 - 由 `nonebot_plugin_localstore` 管理
-- 存储下载的 PDF 文件
+- 存储下载的 PDF/ZIP/7Z 文件
 - 每日凌晨 3 点自动清理
 
 ### 数据文件 (jmcomic_data.json)
@@ -104,7 +106,7 @@ nonebot-plugin-jmdownloader/
 ## 技术约束
 
 1. **协议限制**: 仅支持 OneBot V11，因群文件 API 特殊性
-2. **Python 版本**: 需要 3.10+ 以使用类型注解语法
+2. **Python 版本**: 需要 3.11+ 以使用 StrEnum 和 match case 语法
 3. **网络要求**: 需能访问 JMComic 服务（可配置代理）
 4. **存储空间**: 需要足够空间缓存 PDF 文件
 

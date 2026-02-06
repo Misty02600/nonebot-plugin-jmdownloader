@@ -51,6 +51,14 @@
 - [x] `format_photo_info` 移入 JMService 类
 - [x] 日志格式统一
 
+#### ZIP 格式支持 (2026-02-06, TASK009)
+- [x] `OutputFormat` StrEnum 移至 `core/enums.py`（PDF/ZIP，7z 已移除）
+- [x] `jmcomic_zip_password` 配置项 + YAML encrypt 条件生成
+- [x] `pyzipper>=0.3.6` 依赖（AES 加密）
+- [x] 修复 `download_success_dict` 状态泄漏（关联 TASK015）
+- [x] 下载后输出文件存在性验证（检测插件静默失败）
+- [x] ZipPlugin 错误行为调研：`call_all_plugin(safe=True)` 吞异常
+
 #### Bug 修复与代码清理 (2026-02-06)
 - [x] 移除 `JMCOMIC_BLOCKED_MESSAGE` 配置项
 - [x] 移除 `yaml` 依赖，改用手动 `quote()` 函数
@@ -82,7 +90,7 @@
    - 状态: TASK014 待修复
 
 4. **JmDownloader 状态累积**: 单例复用导致内存泄漏
-   - 状态: TASK015 待修复
+   - 状态: TASK015 待修复（已部分缓解：download_success_dict.clear()）
 
 5. **数据文件损坏无容错**: 损坏时插件启动失败
    - 状态: TASK016 待修复
