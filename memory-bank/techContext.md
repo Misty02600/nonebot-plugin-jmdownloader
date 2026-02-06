@@ -73,6 +73,7 @@ nonebot-plugin-jmdownloader/
 | JMCOMIC_USERNAME         | str  | None   | JM 登录用户名    |
 | JMCOMIC_PASSWORD         | str  | None   | JM 登录密码      |
 | JMCOMIC_ALLOW_GROUPS     | bool | False  | 默认启用所有群   |
+| JMCOMIC_ALLOW_PRIVATE    | bool | True   | 允许私聊功能     |
 | JMCOMIC_USER_LIMITS      | int  | 5      | 每周下载限制     |
 | JMCOMIC_MODIFY_REAL_MD5  | bool | False  | 修改 PDF MD5     |
 | JMCOMIC_RESULTS_PER_PAGE | int  | 20     | 搜索分页数量     |
