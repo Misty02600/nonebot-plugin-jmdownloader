@@ -18,6 +18,7 @@ class PluginConfig(BaseModel):
 
     # 数据管理
     jmcomic_allow_groups: bool = Field(default=False, description="是否默认启用所有群")
+    jmcomic_allow_private: bool = Field(default=True, description="是否允许私聊功能")
     jmcomic_user_limits: int = Field(
         default=5, description="每位用户的每周下载限制次数"
     )
