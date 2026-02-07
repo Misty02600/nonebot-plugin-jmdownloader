@@ -6,15 +6,18 @@
 *当前没有进行中的任务*
 
 ## Pending
-- [TASK018] 简化解除拉黑权限 - 群主/管理员可直接解除任何人的拉黑
 - [TASK016] 数据文件损坏时的容错处理 - 备份损坏文件并返回默认值
 - [TASK015] JmDownloader 单例状态泄漏 - 每次下载创建新实例避免内存泄漏（已部分缓解：download_success_dict.clear()）
 - [TASK014] 下载失败不扣减额度 - 额度应在下载成功后才扣减
 - [TASK013] 群启用检查改为事件处理 - 群未启用时发送提示词而非静默忽略
-- [TASK008] 群启用黑白名单模式 - 改进群启用逻辑，支持黑白名单模式切换
 - [TASK007] 群级别内容屏蔽 - 将全局屏蔽改为群独立配置
 
 ## Completed
+- [TASK008] 群启用黑白名单模式 - 完成于 2026-02-07
+  - `jmcomic_group_list_mode` 配置项（blacklist/whitelist）
+  - `jmcomic_allow_groups` 作为别名向后兼容
+  - `GroupConfig.is_enabled(mode)` 使用 match case
+  - 114 tests passed
 - [TASK012] 违规下载惩罚配置 - 完成于 2026-02-07
   - `jmcomic_punish_on_violation` 配置项控制是否惩罚
   - 所有用户（包括超管）都受内容限制
@@ -75,7 +78,7 @@
   - 41 tests passed
 
 ## Abandoned
-*当前没有已废弃的任务*
+- [TASK018] 简化解除拉黑权限 - 废弃于 2026-02-07（TASK012 已解决相关问题）
 
 ---
 

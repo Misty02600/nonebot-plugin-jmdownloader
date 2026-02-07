@@ -5,9 +5,12 @@
 
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import msgspec
+
+if TYPE_CHECKING:
+    from .enums import GroupListMode
 
 # region GroupConfig
 
@@ -25,11 +28,27 @@ class GroupConfig(msgspec.Struct, omit_defaults=True):
     enabled: bool | msgspec.UnsetType = msgspec.UNSET
     blacklist: set[str] = msgspec.field(default_factory=set)
 
-    def is_enabled(self, default: bool = False) -> bool:
-        """检查群是否启用功能"""
-        if self.enabled is msgspec.UNSET:
-            return default
-        return self.enabled
+    def is_enabled(self, mode: GroupListMode) -> bool:
+        """根据列表模式检查群是否启用功能
+
+        Args:
+            mode: 群列表模式（WHITELIST / BLACKLIST）
+
+        Returns:
+            是否启用功能
+        """
+        # StrEnum 的 value 就是字符串，直接比较值
+        match (str(mode), self.enabled):
+            # 白名单模式：True 和 UNSET 可以，False 不能
+            case ("whitelist", False):
+                return False
+            case ("whitelist", _):  # True or UNSET
+                return True
+            # 黑名单模式：只有 True 可以
+            case ("blacklist", True):
+                return True
+            case _:  # blacklist + (False or UNSET)
+                return False
 
 
 # endregion

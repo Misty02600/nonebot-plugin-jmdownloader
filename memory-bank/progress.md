@@ -78,11 +78,19 @@
 - [x] 特权用户免惩罚（超管/管理员/群主）
 - [x] 使用 NoneBot 内置 `GROUP_ADMIN | GROUP_OWNER` 权限检查
 
+#### 群启用黑白名单模式 (2026-02-07, TASK008)
+- [x] `GroupListMode` StrEnum (whitelist/blacklist)
+- [x] `jmcomic_group_list_mode` 新配置项
+- [x] `jmcomic_allow_groups` 作为别名向后兼容
+- [x] `GroupConfig.is_enabled(mode)` 使用 match case
+- [x] 测试用例更新
+
 ### 📋 待改进/可选功能
 - [ ] TASK013: 群启用检查改为事件处理
 - [ ] TASK014: 下载失败不扣减额度
 - [ ] TASK015: JmDownloader 单例状态泄漏
 - [ ] TASK016: 数据文件损坏容错处理
+- [ ] TASK007: 群级别内容屏蔽
 - [ ] 真实环境功能回归测试
 - [ ] 支持更多协议适配器
 - [ ] 并发请求防护（请求锁、下载去重）

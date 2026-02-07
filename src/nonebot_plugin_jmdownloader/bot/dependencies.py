@@ -88,7 +88,7 @@ JmServiceDep = Annotated[JMService, Depends(get_jm_service)]
 _data_manager = DataManager(
     data_dir=get_plugin_data_dir(),
     default_user_limit=plugin_config.jmcomic_user_limits,
-    default_enabled=plugin_config.jmcomic_allow_groups,
+    group_mode=plugin_config.jmcomic_group_list_mode,
 )
 
 
