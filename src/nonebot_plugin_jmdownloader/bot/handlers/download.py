@@ -14,11 +14,12 @@ from nonebot.adapters.onebot.v11 import (
     NetworkError,
     PrivateMessageEvent,
 )
+from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 
 from .. import DataManagerDep, JmServiceDep
-from ..dependencies import Photo
+from ..dependencies import Photo, plugin_config
 from .common import group_enabled_check, private_enabled_check
 
 # region 前置检查 handler
@@ -70,14 +71,28 @@ async def photo_restriction_check(
     photo: Photo,
     dm: DataManagerDep,
 ):
-    """检查内容限制，违规则惩罚（仅群聊触发）"""
-    if await SUPERUSER(bot, event):
-        return
+    """检查内容限制，违规则根据配置惩罚（仅群聊触发）
 
-    user_id = str(event.user_id)
+    所有用户（包括超管）都受内容限制，但超管/管理员/群主免于惩罚。
+    """
     photo_tags = list(photo.tags) if photo.tags else []
-    if dm.restriction.is_photo_restricted(photo.id, photo_tags):
+    if not dm.restriction.is_photo_restricted(photo.id, photo_tags):
+        return  # 未被限制，允许下载
+
+    # 检查是否应该惩罚
+    should_punish = plugin_config.jmcomic_punish_on_violation
+
+    # 超管/管理员/群主免惩罚（无论配置如何）
+    if should_punish:
+        is_privileged = await SUPERUSER(bot, event) or await (
+            GROUP_ADMIN | GROUP_OWNER
+        )(bot, event)
+        if is_privileged:
+            should_punish = False
+
+    if should_punish:
         # 惩罚：禁言 + 黑名单
+        user_id = str(event.user_id)
         group_id = event.group_id
         group = dm.get_group(group_id)
         try:
@@ -92,6 +107,9 @@ async def photo_restriction_check(
             MessageSegment.at(event.user_id)
             + "该本子（或其tag）被禁止下载！\n你已被加入本群jm黑名单"
         )
+    else:
+        # 只阻止，不惩罚（特权用户 或 配置关闭惩罚）
+        await matcher.finish("该本子（或其tag）被禁止下载！")
 
 
 async def consume_and_notify(

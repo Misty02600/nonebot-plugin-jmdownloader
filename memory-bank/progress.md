@@ -26,6 +26,8 @@
 - [x] 标签屏蔽列表
 - [x] 预置敏感内容过滤
 - [x] 违规自动惩罚
+- [x] 惩罚配置开关 (`jmcomic_punish_on_violation`)
+- [x] 特权用户免惩罚（超管/管理员/群主）
 
 #### 系统功能
 - [x] 定时缓存清理
@@ -70,7 +72,14 @@
 - [x] 添加 `RandomNickname` 依赖
 - [x] infra 层依赖注入改进（logger 参数化）
 
+#### 违规惩罚配置 (2026-02-07, TASK012)
+- [x] `jmcomic_punish_on_violation` 配置项控制惩罚开关
+- [x] 所有用户（包括超管）都受内容限制
+- [x] 特权用户免惩罚（超管/管理员/群主）
+- [x] 使用 NoneBot 内置 `GROUP_ADMIN | GROUP_OWNER` 权限检查
+
 ### 📋 待改进/可选功能
+- [ ] TASK013: 群启用检查改为事件处理
 - [ ] TASK014: 下载失败不扣减额度
 - [ ] TASK015: JmDownloader 单例状态泄漏
 - [ ] TASK016: 数据文件损坏容错处理

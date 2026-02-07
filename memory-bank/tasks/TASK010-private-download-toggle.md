@@ -1,8 +1,8 @@
 # [TASK010] - 私聊下载开关配置
 
-**Status:** Pending
+**Status:** Completed
 **Added:** 2026-02-01
-**Updated:** 2026-02-01
+**Updated:** 2026-02-06
 
 ## Original Request
 
@@ -32,62 +32,55 @@ class Config(BaseModel):
 
 #### 2. 实现方式
 
-**方案 A**: 在 handler 中检查
+**方案 B**: 使用 Handler 参数类型注解（已实现）
 
 ```python
-@jm_download_private.handle()
-async def handle_private_download(...):
+# common.py
+async def private_enabled_check(event: PrivateMessageEvent, matcher: Matcher):
+    """私聊功能开关检查：私聊功能禁用时静默终止（仅私聊触发）"""
     if not plugin_config.jmcomic_allow_private:
-        await jm_download_private.finish("私聊功能已禁用")
-    # ...
-```
+        await matcher.finish()
 
-**方案 B**: 使用 Rule（推荐）
-
-```python
-# dependencies.py
-def PrivateRule() -> bool:
-    """私聊功能开关规则"""
-    return plugin_config.jmcomic_allow_private
-
-# handlers
-jm_download_private = on_command(
+# handlers - 在命令的 handlers 列表中添加
+jm_download = on_command(
     "jm下载",
-    permission=PRIVATE,
-    rule=PrivateRule,  # 添加规则
     block=True,
+    handlers=[
+        private_enabled_check,  # 1. 私聊功能开关检查（仅私聊，禁用时静默终止）
+        # ...
+    ],
 )
 ```
 
-方案 B 更优雅，如果禁用私聊，命令直接不响应。
+通过参数类型注解 `PrivateMessageEvent`，该 handler 仅在私聊时触发。
 
 ## Implementation Plan
 
-- [ ] 1. 修改 `config.py`:
+- [x] 1. 修改 `config.py`:
   - 添加 `jmcomic_allow_private` 配置项
 
-- [ ] 2. 修改 `bot/dependencies.py`:
-  - 添加 `PrivateRule` 规则函数
+- [x] 2. 创建 `bot/handlers/common.py`:
+  - 添加 `private_enabled_check` handler 函数
 
-- [ ] 3. 修改私聊 handlers:
-  - `download.py` - `jm_download_private`
-  - `search.py` - `jm_search_private`, `jm_next_page_private`
-  - `query.py` - `jm_query_private`
-  - 为所有私聊命令添加 `rule=PrivateRule`
+- [x] 3. 修改 handlers:
+  - `download.py` - `jm_download`
+  - `search.py` - `jm_search`, `jm_next_page`
+  - `query.py` - `jm_query`
+  - 为所有命令添加 `private_enabled_check` handler
 
-- [ ] 4. 更新文档
+- [x] 4. 更新文档
 
 ## Progress Tracking
 
-**Overall Status:** Not Started - 0%
+**Overall Status:** Completed - 100%
 
 ### Subtasks
-| ID   | Description       | Status      | Updated | Notes |
-| ---- | ----------------- | ----------- | ------- | ----- |
-| 10.1 | 修改 config.py    | Not Started |         |       |
-| 10.2 | 添加 PrivateRule  | Not Started |         |       |
-| 10.3 | 修改私聊 handlers | Not Started |         |       |
-| 10.4 | 更新文档          | Not Started |         |       |
+| ID   | Description                | Status   | Updated    | Notes                   |
+| ---- | -------------------------- | -------- | ---------- | ----------------------- |
+| 10.1 | 修改 config.py             | Complete | 2026-02-06 | `jmcomic_allow_private` |
+| 10.2 | 添加 private_enabled_check | Complete | 2026-02-06 | 在 common.py 中         |
+| 10.3 | 修改私聊 handlers          | Complete | 2026-02-06 | 所有命令已集成检查      |
+| 10.4 | 更新文档                   | Complete | 2026-02-06 |                         |
 
 ## Progress Log
 
@@ -95,3 +88,12 @@ jm_download_private = on_command(
 
 - 创建任务文件
 - 设计实施方案
+
+### 2026-02-06
+
+- 确认代码实现已完成
+- `jmcomic_allow_private` 配置项已添加到 config.py (Line 30)
+- `private_enabled_check` handler 已在 common.py 中实现 (Line 14-17)
+- 所有命令（jm下载、jm搜索、jm下一页、jm查询）已集成 private_enabled_check
+- 采用方案 B（Handler 参数类型注解），通过 `PrivateMessageEvent` 类型注解控制触发范围
+- 任务标记为完成

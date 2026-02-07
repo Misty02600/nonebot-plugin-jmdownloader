@@ -11,12 +11,19 @@
 - [TASK015] JmDownloader 单例状态泄漏 - 每次下载创建新实例避免内存泄漏（已部分缓解：download_success_dict.clear()）
 - [TASK014] 下载失败不扣减额度 - 额度应在下载成功后才扣减
 - [TASK013] 群启用检查改为事件处理 - 群未启用时发送提示词而非静默忽略
-- [TASK012] 违规下载惩罚配置 - 控制下载黑名单内容时是否禁言+拉黑
-- [TASK010] 私聊下载开关配置 - 新增配置控制是否允许私聊功能
 - [TASK008] 群启用黑白名单模式 - 改进群启用逻辑，支持黑白名单模式切换
 - [TASK007] 群级别内容屏蔽 - 将全局屏蔽改为群独立配置
 
 ## Completed
+- [TASK012] 违规下载惩罚配置 - 完成于 2026-02-07
+  - `jmcomic_punish_on_violation` 配置项控制是否惩罚
+  - 所有用户（包括超管）都受内容限制
+  - 超管/管理员/群主免惩罚，使用 `GROUP_ADMIN | GROUP_OWNER` 检查
+  - 114 tests passed
+- [TASK010] 私聊下载开关配置 - 完成于 2026-02-06
+  - `jmcomic_allow_private` 配置项
+  - `private_enabled_check` handler 检查
+  - 所有私聊命令已集成检查
 - [TASK009] 支持压缩包格式下载 - 完成于 2026-02-06
   - `OutputFormat` StrEnum (pdf/zip)，7z 已移除（jmcomic bug）
   - `core/enums.py` 独立模块，`jmcomic_zip_password` 配置，`pyzipper>=0.3.6`

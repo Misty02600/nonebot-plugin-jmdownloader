@@ -31,6 +31,10 @@ class PluginConfig(BaseModel):
     jmcomic_user_limits: int = Field(
         default=5, description="每位用户的每周下载限制次数"
     )
+    jmcomic_punish_on_violation: bool = Field(
+        default=True,
+        description="当用户下载违规内容时是否惩罚（禁言+拉黑），超管/管理员/群主始终免惩罚",
+    )
 
     # 服务层
     jmcomic_results_per_page: int = Field(

@@ -48,17 +48,10 @@ test = [
   "pytest-xdist>=3.8.0,<4.0.0",
 ]
 
-[tool.nonebot]
-plugin_dirs = []
-builtin_plugins = []
-
-
 [tool.nonebot.plugins]
-"@local" = []
 nonebot-plugin-jmdownloader = ["nonebot_plugin_jmdownloader"]
 
 [tool.nonebot.adapters]
-"@local" = []
 nonebot-adapter-onebot = [
   { name = "OneBot V11", module_name = "nonebot.adapters.onebot.v11" },
 ]
