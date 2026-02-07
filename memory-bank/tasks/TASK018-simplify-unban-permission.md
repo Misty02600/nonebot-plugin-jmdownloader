@@ -1,8 +1,8 @@
 # [TASK018] - 简化解除拉黑权限
 
-**Status:** Pending
+**Status:** Abandoned
 **Added:** 2026-02-06
-**Updated:** 2026-02-06
+**Updated:** 2026-02-07
 
 ## Original Request
 
@@ -76,3 +76,9 @@ jm_unban_user = on_command(
 ### 2026-02-06
 - 任务创建
 - 分析了问题原因和解决方案
+
+### 2026-02-07
+- **任务废弃**
+- 原因：TASK012 已实现群主/管理员免惩罚机制，不会再被自动拉黑
+- 手动拉黑已有权限检查（`can_operate_check`），管理员无法拉黑群主
+- 此任务不再需要

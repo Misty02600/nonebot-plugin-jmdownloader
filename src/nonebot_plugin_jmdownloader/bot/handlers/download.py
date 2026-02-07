@@ -207,8 +207,8 @@ jm_download = on_command(
     aliases={"JM下载"},
     block=True,
     handlers=[
-        private_enabled_check,  # 1. 私聊功能开关检查（仅私聊，禁用时静默终止）
-        group_enabled_check,  # 2. 群聊启用检查（仅群聊，未启用静默终止）
+        private_enabled_check,  # 1. 私聊功能开关检查（仅私聊，禁用时终止）
+        group_enabled_check,  # 2. 群聊启用检查（仅群聊，未启用终止）
         user_blacklist_check,  # 3. 群聊黑名单检查（仅群聊）
         download_limit_check,  # 4. 下载次数检查（群聊和私聊）
         photo_restriction_check,  # 5. 内容限制检查（仅群聊）

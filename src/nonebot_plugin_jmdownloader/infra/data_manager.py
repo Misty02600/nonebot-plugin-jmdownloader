@@ -8,6 +8,7 @@ import msgspec
 from boltons.fileutils import atomic_save
 
 from ..core.data_models import GroupConfig, RestrictionConfig, UserData
+from ..core.enums import GroupListMode
 
 
 class DataManager:
@@ -24,21 +25,21 @@ class DataManager:
         self,
         data_dir: Path,
         default_user_limit: int,
-        default_enabled: bool,
+        group_mode: GroupListMode,
     ):
         """初始化数据管理器
 
         Args:
             data_dir: 数据目录路径
             default_user_limit: 默认用户下载次数
-            default_enabled: 默认群启用状态
+            group_mode: 群列表模式（WHITELIST / BLACKLIST）
         """
         self._data_dir: Path = data_dir
         self._groups_dir: Path = data_dir / "groups"
         self._restriction_path: Path = data_dir / "restriction.json"
         self._user_path: Path = data_dir / "user.json"
         self.default_user_limit: int = default_user_limit
-        self.default_enabled: bool = default_enabled
+        self.group_mode: GroupListMode = group_mode
 
         # 确保目录存在
         data_dir.mkdir(exist_ok=True)

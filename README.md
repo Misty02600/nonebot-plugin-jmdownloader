@@ -98,21 +98,26 @@ plugins = ["nonebot_plugin_jmdownloader"]
 
 在 NoneBot2 项目的`.env`文件中添加下表中的必填配置
 
-|           配置项            | 必填  | 默认值 |                   说明                   |
-| :-------------------------: | :---: | :----: | :--------------------------------------: |
-|      jmcomic_username       |  否   |   无   |               JM登录用户名               |
-|      jmcomic_password       |  否   |   无   |                JM登录密码                |
-|       jmcomic_proxies       |  否   | system |               网络代理地址               |
-|         jmcomic_log         |  否   | False  | 是否开启JMComic-Crawler-Python的日志输出 |
-|    jmcomic_thread_count     |  否   |   10   |               下载线程数量               |
-|    jmcomic_allow_groups     |  否   | False  |            是否默认启用所有群            |
-|    jmcomic_allow_private    |  否   |  True  |           是否允许私聊使用功能           |
-|     jmcomic_user_limits     |  否   |   5    |        每位用户的每周下载限制次数        |
-|    jmcomic_output_format    |  否   |  pdf   |           输出格式：pdf 或 zip           |
-|    jmcomic_zip_password     |  否   |   无   |    ZIP 压缩包密码（仅 zip 格式有效）     |
-|   jmcomic_modify_real_md5   |  否   | False  | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
-|  jmcomic_results_per_page   |  否   |   20   |          每页显示的搜索结果数量          |
-| jmcomic_punish_on_violation |  否   |  True  | 群员下载违规内容时是否惩罚（禁言+拉黑）  |
+|           配置项            | 必填  |  默认值   |                   说明                   |
+| :-------------------------: | :---: | :-------: | :--------------------------------------: |
+|      jmcomic_username       |  否   |    无     |               JM登录用户名               |
+|      jmcomic_password       |  否   |    无     |                JM登录密码                |
+|       jmcomic_proxies       |  否   |  system   |               网络代理地址               |
+|         jmcomic_log         |  否   |   False   | 是否开启JMComic-Crawler-Python的日志输出 |
+|    jmcomic_thread_count     |  否   |    10     |               下载线程数量               |
+|   jmcomic_group_list_mode   |  否   | blacklist |     群列表模式：blacklist/whitelist      |
+|    jmcomic_allow_groups     |  否   |    无     |  已废弃，请使用 jmcomic_group_list_mode  |
+|    jmcomic_allow_private    |  否   |   True    |           是否允许私聊使用功能           |
+|     jmcomic_user_limits     |  否   |     5     |        每位用户的每周下载限制次数        |
+|    jmcomic_output_format    |  否   |    pdf    |           输出格式：pdf 或 zip           |
+|    jmcomic_zip_password     |  否   |    无     |    ZIP 压缩包密码（仅 zip 格式有效）     |
+|   jmcomic_modify_real_md5   |  否   |   False   | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
+|  jmcomic_results_per_page   |  否   |    20     |          每页显示的搜索结果数量          |
+| jmcomic_punish_on_violation |  否   |   True    | 群员下载违规内容时是否惩罚（禁言+拉黑）  |
+
+**群列表模式说明：**
+- `blacklist`（黑名单模式）：默认禁用所有群，只有显式启用的群才能使用
+- `whitelist`（白名单模式）：默认启用所有群，只有显式禁用的群不能使用
 
 
 **示例：**
@@ -127,8 +132,10 @@ JMCOMIC_THREAD_COUNT=10
 JMCOMIC_USERNAME=******
 # JMComic 登录密码
 JMCOMIC_PASSWORD=******
-# JMComic 是否默认启用所有群，建议关闭
-JMCOMIC_ALLOW_GROUPS=False
+# JMComic 群列表模式：blacklist（默认禁用）/ whitelist（默认启用）
+JMCOMIC_GROUP_LIST_MODE=blacklist
+# [废弃] 旧配置，使用 True = whitelist, False = blacklist
+# JMCOMIC_ALLOW_GROUPS=False
 # JMComic 是否允许私聊使用功能
 JMCOMIC_ALLOW_PRIVATE=True
 # JMComic 每位用户的每周下载限制次数
@@ -144,6 +151,13 @@ JMCOMIC_RESULTS_PER_PAGE=20
 # 群员下载违规内容时是否惩罚（禁言+拉黑）
 JMCOMIC_PUNISH_ON_VIOLATION=True
 ```
+
+> [!IMPORTANT]
+> `JMCOMIC_ALLOW_GROUPS` 配置项会自动转换为新配置：
+> - `JMCOMIC_ALLOW_GROUPS=True` → `JMCOMIC_GROUP_LIST_MODE=whitelist`
+> - `JMCOMIC_ALLOW_GROUPS=False` → `JMCOMIC_GROUP_LIST_MODE=blacklist`
+>
+> 如果同时设置了两个配置，新配置 `JMCOMIC_GROUP_LIST_MODE` 的优先级更高。
 
 > [!IMPORTANT]
 > `JMCOMIC_BLOCKED_MESSAGE` 配置项已在新版本中移除，现在会读取nickname发送屏蔽本子的代替消息

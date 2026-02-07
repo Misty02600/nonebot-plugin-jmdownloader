@@ -1,8 +1,10 @@
 """插件配置"""
 
-from pydantic import BaseModel, Field, field_validator
+from typing import Self
 
-from .core.enums import OutputFormat
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from .core.enums import GroupListMode, OutputFormat
 
 
 class PluginConfig(BaseModel):
@@ -26,7 +28,14 @@ class PluginConfig(BaseModel):
     )
 
     # 数据管理
-    jmcomic_allow_groups: bool = Field(default=False, description="是否默认启用所有群")
+    jmcomic_group_list_mode: GroupListMode = Field(
+        default=GroupListMode.BLACKLIST,
+        description="群列表模式：blacklist（默认禁用）/ whitelist（默认启用）",
+    )
+    jmcomic_allow_groups: bool | None = Field(
+        default=None,
+        description="[废弃] 请使用 jmcomic_group_list_mode，True=whitelist, False=blacklist",
+    )
     jmcomic_allow_private: bool = Field(default=True, description="是否允许私聊功能")
     jmcomic_user_limits: int = Field(
         default=5, description="每位用户的每周下载限制次数"
@@ -47,3 +56,14 @@ class PluginConfig(BaseModel):
         if v is not None:
             return str(v)
         return v
+
+    @model_validator(mode="after")
+    def resolve_group_mode(self) -> Self:
+        """如果用户设置了旧配置 jmcomic_allow_groups，转换为新配置"""
+        if self.jmcomic_allow_groups is not None:
+            self.jmcomic_group_list_mode = (
+                GroupListMode.WHITELIST
+                if self.jmcomic_allow_groups
+                else GroupListMode.BLACKLIST
+            )
+        return self

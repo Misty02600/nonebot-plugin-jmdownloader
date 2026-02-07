@@ -6,13 +6,32 @@ core/data_models 单元测试
 
 from __future__ import annotations
 
+import importlib.util
+import sys
+from pathlib import Path
+
 import msgspec
 
-from nonebot_plugin_jmdownloader.core.data_models import (
-    GroupConfig,
-    RestrictionConfig,
-    UserData,
-)
+# 动态加载 core 子模块，避免触发父包的 __init__.py
+_src_dir = Path(__file__).parent.parent.parent / "src" / "nonebot_plugin_jmdownloader"
+
+
+def _load_module(name: str, file_path: Path):
+    """动态加载模块"""
+    spec = importlib.util.spec_from_file_location(name, file_path)
+    module = importlib.util.module_from_spec(spec)  # type: ignore
+    sys.modules[name] = module
+    spec.loader.exec_module(module)  # type: ignore
+    return module
+
+
+_enums = _load_module("core_enums", _src_dir / "core" / "enums.py")
+_data_models = _load_module("core_data_models", _src_dir / "core" / "data_models.py")
+
+GroupConfig = _data_models.GroupConfig
+RestrictionConfig = _data_models.RestrictionConfig
+UserData = _data_models.UserData
+GroupListMode = _enums.GroupListMode
 
 
 class TestGroupConfig:
@@ -36,19 +55,27 @@ class TestGroupConfig:
         assert group.enabled is True
         assert group.blacklist == {"user1", "user2"}
 
-    def test_is_enabled_with_default(self):
-        """测试 is_enabled 使用默认值"""
-        group = GroupConfig()
-        assert group.is_enabled(default=True) is True
-        assert group.is_enabled(default=False) is False
-
-    def test_is_enabled_with_explicit_value(self):
-        """测试 is_enabled 使用显式值"""
+    def test_is_enabled_whitelist_mode(self):
+        """测试 is_enabled 白名单模式：True 和 UNSET 可以，False 不能"""
+        group_unset = GroupConfig()
         group_enabled = GroupConfig(enabled=True)
         group_disabled = GroupConfig(enabled=False)
 
-        assert group_enabled.is_enabled(default=False) is True
-        assert group_disabled.is_enabled(default=True) is False
+        # 白名单模式：默认允许
+        assert group_unset.is_enabled(GroupListMode.WHITELIST) is True
+        assert group_enabled.is_enabled(GroupListMode.WHITELIST) is True
+        assert group_disabled.is_enabled(GroupListMode.WHITELIST) is False
+
+    def test_is_enabled_blacklist_mode(self):
+        """测试 is_enabled 黑名单模式：只有 True 可以"""
+        group_unset = GroupConfig()
+        group_enabled = GroupConfig(enabled=True)
+        group_disabled = GroupConfig(enabled=False)
+
+        # 黑名单模式：默认禁止
+        assert group_unset.is_enabled(GroupListMode.BLACKLIST) is False
+        assert group_enabled.is_enabled(GroupListMode.BLACKLIST) is True
+        assert group_disabled.is_enabled(GroupListMode.BLACKLIST) is False
 
     def test_serialization(self):
         """测试序列化和反序列化"""
