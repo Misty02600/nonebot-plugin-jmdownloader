@@ -1,8 +1,8 @@
 # [TASK013] - 群启用检查改为事件处理
 
-**Status:** Pending
+**Status:** Completed
 **Added:** 2026-02-05
-**Updated:** 2026-02-05
+**Updated:** 2026-02-07
 
 ## Original Request
 
@@ -40,43 +40,46 @@ GroupRule = Rule(group_is_enabled) & Rule(group_user_not_in_blacklist)
 
 ### 设计细节
 
-1. 在 `checks.py` 中添加 `group_enabled_check` 函数
-2. 从 `GroupRule` 中移除 `group_is_enabled`
-3. 在群聊命令中添加 `group_enabled_check` 作为第一个前置 handler
-4. 提示词可配置（考虑添加配置项或直接硬编码）
+1. 在 `common.py` 中的 `group_enabled_check` 函数添加提示消息
+2. 用户未启用功能时发送 "当前群聊未开启该功能"
+3. 私聊功能禁用时发送 "私聊功能已禁用"
 
-### 提示词建议
+## Implementation
 
-- "本群未启用此功能"
-- "请联系管理员启用本插件功能"
+已实施的改动（2026-02-07）：
 
-## Implementation Plan
+```python
+# bot/handlers/common.py
 
-- [ ] 1. 在 `checks.py` 中添加 `group_enabled_check` 函数
-- [ ] 2. 修改 `dependencies.py`，从 `GroupRule` 中移除 `group_is_enabled`
-- [ ] 3. 更新所有使用 `GroupRule` 的群聊命令，添加 `group_enabled_check` 前置 handler
-  - [ ] `search.py` - `jm_search_group`, `jm_next_page_group`
-  - [ ] `query.py` - `jm_query_group`
-  - [ ] `download.py` - `jm_download_group`
-  - [ ] `scheduled.py` - 检查是否需要
-  - [ ] `group_control.py` - 管理命令可能不需要此检查
-- [ ] 4. 运行测试确保功能正常
-- [ ] 5. 更新文档（如有必要）
+async def private_enabled_check(event: PrivateMessageEvent, matcher: Matcher):
+    """私聊功能开关检查：私聊功能禁用时终止（仅私聊触发）"""
+    if not plugin_config.jmcomic_allow_private:
+        await matcher.finish("私聊功能已禁用")
+
+
+async def group_enabled_check(
+    event: GroupMessageEvent, matcher: Matcher, dm: DataManagerDep
+):
+    """群聊启用检查：群未启用时终止（仅群聊触发）"""
+    group = dm.get_group(event.group_id)
+    if not group.is_enabled(dm.group_mode):
+        await matcher.finish("当前群聊未开启该功能")
+```
 
 ## Progress Tracking
 
-**Overall Status:** Not Started - 0%
+**Overall Status:** Completed - 100%
 
 ### Subtasks
-| ID   | Description                   | Status      | Updated    | Notes |
-| ---- | ----------------------------- | ----------- | ---------- | ----- |
-| 13.1 | 添加 group_enabled_check 函数 | Not Started | 2026-02-05 |       |
-| 13.2 | 修改 GroupRule                | Not Started | 2026-02-05 |       |
-| 13.3 | 更新 search.py                | Not Started | 2026-02-05 |       |
-| 13.4 | 更新 query.py                 | Not Started | 2026-02-05 |       |
-| 13.5 | 更新 download.py              | Not Started | 2026-02-05 |       |
-| 13.6 | 检查并更新其他 handlers       | Not Started | 2026-02-05 |       |
-| 13.7 | 运行测试                      | Not Started | 2026-02-05 |       |
+| ID   | Description                   | Status   | Updated    | Notes                      |
+| ---- | ----------------------------- | -------- | ---------- | -------------------------- |
+| 13.1 | 添加 group_enabled_check 函数 | Complete | 2026-02-05 | 在 TASK011 中已实现        |
+| 13.2 | 修改 GroupRule                | Complete | 2026-02-05 | 在 TASK017 中已移除        |
+| 13.3 | 更新 search.py                | Complete | 2026-02-05 | 已集成 group_enabled_check |
+| 13.4 | 更新 query.py                 | Complete | 2026-02-05 | 已集成 group_enabled_check |
+| 13.5 | 更新 download.py              | Complete | 2026-02-05 | 已集成 group_enabled_check |
+| 13.6 | 添加用户提示消息              | Complete | 2026-02-07 | "当前群聊未开启该功能"     |
+| 13.7 | 运行测试                      | Complete | 2026-02-07 | 114 tests passed           |
 
 ## Progress Log
 
@@ -84,3 +87,8 @@ GroupRule = Rule(group_is_enabled) & Rule(group_user_not_in_blacklist)
 - 创建任务文件
 - 分析当前实现和改进方案
 - 确定使用前置 handler 模式（与现有检查函数一致）
+
+### 2026-02-07
+- 修改 `group_enabled_check`：添加提示消息 "当前群聊未开启该功能"
+- 修改 `private_enabled_check`：添加提示消息 "私聊功能已禁用"
+- **任务标记为完成**
