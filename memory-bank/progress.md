@@ -85,9 +85,17 @@
 - [x] `GroupConfig.is_enabled(mode)` 使用 match case
 - [x] 测试用例更新
 
+#### 群启用检查添加提示消息 (2026-02-07, TASK013)
+- [x] `group_enabled_check` 添加提示消息 "当前群聊未开启该功能"
+- [x] `private_enabled_check` 添加提示消息 "私聊功能已禁用"
+
+#### 下载失败不扣减额度 (2026-02-07, TASK014)
+- [x] 利用 handler 链 + finish 特性：下载成功后才扣减
+- [x] `send_progress_message` 查询但不扣减
+- [x] `deduct_limit` 静默扣减
+- [x] 进度消息格式："你当前还有 x 次下载次数，开始下载..."
+
 ### 📋 待改进/可选功能
-- [ ] TASK013: 群启用检查改为事件处理
-- [ ] TASK014: 下载失败不扣减额度
 - [ ] TASK015: JmDownloader 单例状态泄漏
 - [ ] TASK016: 数据文件损坏容错处理
 - [ ] TASK007: 群级别内容屏蔽

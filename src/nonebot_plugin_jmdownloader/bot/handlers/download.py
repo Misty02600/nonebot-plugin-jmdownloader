@@ -55,8 +55,8 @@ def build_progress_message(
     """构建进度消息"""
     info = jm.format_photo_info(photo)
     if remaining_limit is not None:
-        return f"{info}\n开始下载...\n你本周还有{remaining_limit}次下载次数！"
-    return f"{info}\n开始下载..."
+        return f"你本周还有 {remaining_limit} 次下载次数，开始下载...\n{info}"
+    return f"开始下载...\n{info}"
 
 
 # endregion
@@ -112,7 +112,7 @@ async def photo_restriction_check(
         await matcher.finish("该本子（或其tag）被禁止下载！")
 
 
-async def consume_and_notify(
+async def send_progress_message(
     bot: Bot,
     event: MessageEvent,
     matcher: Matcher,
@@ -120,15 +120,13 @@ async def consume_and_notify(
     dm: DataManagerDep,
     jm: JmServiceDep,
 ):
-    """扣除次数 & 发送进度消息（群聊和私聊都触发）"""
-    user_id = event.user_id
+    """发送进度消息（不扣额度，群聊和私聊都触发）"""
     is_su = await SUPERUSER(bot, event)
 
-    # 扣除次数
+    # 查询剩余次数（不扣减）
     remaining: int | None = None
     if not is_su:
-        remaining = dm.users.decrease_limit(user_id, 1, dm.default_user_limit)
-        dm.save_users()
+        remaining = dm.users.get_limit(event.user_id, dm.default_user_limit)
 
     # 发送进度消息
     try:
@@ -195,7 +193,19 @@ async def private_download_and_upload(
             name=f"{photo.id}{ext}",
         )
     except ActionFailed:
-        await matcher.send("发送文件失败")
+        await matcher.finish("发送文件失败")
+
+
+async def deduct_limit(
+    bot: Bot,
+    event: MessageEvent,
+    dm: DataManagerDep,
+):
+    """扣减额度（下载成功后触发，静默）"""
+    if await SUPERUSER(bot, event):
+        return
+    dm.users.decrease_limit(event.user_id, 1, dm.default_user_limit)
+    dm.save_users()
 
 
 # endregion
@@ -212,9 +222,10 @@ jm_download = on_command(
         user_blacklist_check,  # 3. 群聊黑名单检查（仅群聊）
         download_limit_check,  # 4. 下载次数检查（群聊和私聊）
         photo_restriction_check,  # 5. 内容限制检查（仅群聊）
-        consume_and_notify,  # 6. 扣次数 + 通知（群聊和私聊）
+        send_progress_message,  # 6. 发送进度消息（不扣额度）
         group_download_and_upload,  # 7. 下载 + 上传群文件（仅群聊）
         private_download_and_upload,  # 8. 下载 + 上传私聊文件（仅私聊）
+        deduct_limit,  # 9. 扣减额度（下载成功后静默扣减）
     ],
 )
 

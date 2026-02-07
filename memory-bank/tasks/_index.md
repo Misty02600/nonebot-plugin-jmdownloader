@@ -8,11 +8,16 @@
 ## Pending
 - [TASK016] 数据文件损坏时的容错处理 - 备份损坏文件并返回默认值
 - [TASK015] JmDownloader 单例状态泄漏 - 每次下载创建新实例避免内存泄漏（已部分缓解：download_success_dict.clear()）
-- [TASK014] 下载失败不扣减额度 - 额度应在下载成功后才扣减
-- [TASK013] 群启用检查改为事件处理 - 群未启用时发送提示词而非静默忽略
 - [TASK007] 群级别内容屏蔽 - 将全局屏蔽改为群独立配置
 
 ## Completed
+- [TASK014] 下载失败不扣减额度 - 完成于 2026-02-07
+  - 利用 handler 链 + finish 特性：下载成功后才扣减
+  - `send_progress_message` 查询但不扣减
+  - `deduct_limit` 静默扣减
+- [TASK013] 群启用检查改为事件处理 - 完成于 2026-02-07
+  - `group_enabled_check` 添加提示消息 "当前群聊未开启该功能"
+  - `private_enabled_check` 添加提示消息 "私聊功能已禁用"
 - [TASK008] 群启用黑白名单模式 - 完成于 2026-02-07
   - `jmcomic_group_list_mode` 配置项（blacklist/whitelist）
   - `jmcomic_allow_groups` 作为别名向后兼容
