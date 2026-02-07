@@ -5,7 +5,6 @@
 ## ✨ *基于 Nonebot2 的 JMComic 插件* ✨
 
 [![LICENSE](https://img.shields.io/github/license/Misty02600/nonebot-plugin-jmdownloader.svg)](./LICENSE)
-[![pypi](https://img.shields.io/pypi/v/nonebot-plugin-jmdownloader.svg)](https://pypi.python.org/pypi/nonebot-plugin-jmdownloader)
 [![python](https://img.shields.io/badge/python-3.11+-blue.svg?logo=python&logoColor=white)](https://www.python.org)
 [![Adapters](https://img.shields.io/badge/Adapters-OneBot%20v11-blue)](#supported-adapters)
 <br/>
@@ -99,20 +98,21 @@ plugins = ["nonebot_plugin_jmdownloader"]
 
 在 NoneBot2 项目的`.env`文件中添加下表中的必填配置
 
-|          配置项          | 必填  | 默认值 |                   说明                   |
-| :----------------------: | :---: | :----: | :--------------------------------------: |
-|     jmcomic_username     |  否   |   无   |               JM登录用户名               |
-|     jmcomic_password     |  否   |   无   |                JM登录密码                |
-|     jmcomic_proxies      |  否   | system |               网络代理地址               |
-|       jmcomic_log        |  否   | False  | 是否开启JMComic-Crawler-Python的日志输出 |
-|   jmcomic_thread_count   |  否   |   10   |               下载线程数量               |
-|   jmcomic_allow_groups   |  否   | False  |            是否默认启用所有群            |
-|  jmcomic_allow_private   |  否   |  True  |           是否允许私聊使用功能           |
-|   jmcomic_user_limits    |  否   |   5    |        每位用户的每周下载限制次数        |
-|  jmcomic_output_format   |  否   |  pdf   |           输出格式：pdf 或 zip            |
-|  jmcomic_zip_password    |  否   |   无   |    ZIP 压缩包密码（仅 zip 格式有效）     |
-| jmcomic_modify_real_md5  |  否   | False  | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
-| jmcomic_results_per_page |  否   |   20   |          每页显示的搜索结果数量          |
+|           配置项            | 必填  | 默认值 |                   说明                   |
+| :-------------------------: | :---: | :----: | :--------------------------------------: |
+|      jmcomic_username       |  否   |   无   |               JM登录用户名               |
+|      jmcomic_password       |  否   |   无   |                JM登录密码                |
+|       jmcomic_proxies       |  否   | system |               网络代理地址               |
+|         jmcomic_log         |  否   | False  | 是否开启JMComic-Crawler-Python的日志输出 |
+|    jmcomic_thread_count     |  否   |   10   |               下载线程数量               |
+|    jmcomic_allow_groups     |  否   | False  |            是否默认启用所有群            |
+|    jmcomic_allow_private    |  否   |  True  |           是否允许私聊使用功能           |
+|     jmcomic_user_limits     |  否   |   5    |        每位用户的每周下载限制次数        |
+|    jmcomic_output_format    |  否   |  pdf   |           输出格式：pdf 或 zip           |
+|    jmcomic_zip_password     |  否   |   无   |    ZIP 压缩包密码（仅 zip 格式有效）     |
+|   jmcomic_modify_real_md5   |  否   | False  | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
+|  jmcomic_results_per_page   |  否   |   20   |          每页显示的搜索结果数量          |
+| jmcomic_punish_on_violation |  否   |  True  | 群员下载违规内容时是否惩罚（禁言+拉黑）  |
 
 
 **示例：**
@@ -141,6 +141,8 @@ JMCOMIC_OUTPUT_FORMAT=pdf
 JMCOMIC_MODIFY_REAL_MD5=False
 # 每页显示的搜索结果数量，越多每次发送时间越长且越容易被吞，建议40以内
 JMCOMIC_RESULTS_PER_PAGE=20
+# 群员下载违规内容时是否惩罚（禁言+拉黑）
+JMCOMIC_PUNISH_ON_VIOLATION=True
 ```
 
 > [!IMPORTANT]
@@ -167,8 +169,9 @@ JMCOMIC_RESULTS_PER_PAGE=20
 
 - 设置文件夹需要协议端API支持，bot会先读取群内是否有该文件夹，如果没有会尝试创建。
 - Bot会在每天凌晨3点清理缓存文件夹。
-- 默认已经屏蔽了一些常见的令人不适的本子，可以在数据储存文件里自行修改。
-- 被屏蔽的本子会在搜索结果中隐藏，下载被屏蔽的本子会被bot尝试禁言并加入本群黑名单。
+- 被屏蔽的本子会在搜索结果中隐藏，下载被屏蔽的本子会被阻止下载。
+- 普通用户下载违规内容时，默认会被禁言24小时并加入本群黑名单（可通过 `JMCOMIC_PUNISH_ON_VIOLATION` 配置关闭）。
+- **超管、群管理员、群主下载违规内容时只会被阻止，不会被惩罚。**
 - **命令需要添加 COMMAND_START 前缀**
 
 ### 🎨 效果图
