@@ -21,7 +21,6 @@ dependencies = [
   "boltons>=24.0.0",
   "cachetools>=5.5.0",
   "pyzipper>=0.3.6",
-  "nonebot-plugin-jmdownloader>=1.0.4",
 ]
 
 [project.urls]
