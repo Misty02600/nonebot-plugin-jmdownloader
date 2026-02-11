@@ -39,3 +39,15 @@ check:
 # 更新 pre-commit hooks
 update:
     uv run prek auto-update
+
+# 从 dev 向 main 创建 PR
+pr:
+    gh pr create --base main --fill
+    gh pr view --web
+
+# PR 合并后同步 dev 到 main
+sync:
+    git fetch origin
+    git checkout dev
+    git reset --hard origin/main
+    git push origin dev --force-with-lease

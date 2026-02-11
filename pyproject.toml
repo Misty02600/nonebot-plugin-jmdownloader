@@ -92,7 +92,7 @@ root = "tests"
 reportPrivateUsage = "none"      # 允许测试访问私有属性 (_variable)
 reportUnknownMemberType = "none" # 允许 Mock 对象等动态类型
 
-[tool.pytest]
+[tool.pytest.ini_options]
 addopts = [
   "--import-mode=importlib", # 使用 importlib 导入模式（推荐，避免 sys.path 污染）
   "--strict-markers",        # 严格标记模式（未注册的 marker 会报错）
