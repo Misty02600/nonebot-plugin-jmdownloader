@@ -51,10 +51,10 @@ nb plugin install nonebot-plugin-jmdownloader --upgrade -i "https://pypi.tuna.ts
 ```bash
 uv add nonebot-plugin-jmdownloader
 ```
-安装仓库 master 分支
+安装仓库 main 分支
 
 ```bash
-uv add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@master
+uv add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@main
 ```
 </details>
 
@@ -64,10 +64,10 @@ uv add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@master
 ```bash
 pdm add nonebot-plugin-jmdownloader
 ```
-安装仓库 master 分支
+安装仓库 main 分支
 
 ```bash
-pdm add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@master
+pdm add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@main
 ```
 </details>
 
@@ -77,10 +77,10 @@ pdm add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@master
 ```bash
 poetry add nonebot-plugin-jmdownloader
 ```
-安装仓库 master 分支
+安装仓库 main 分支
 
 ```bash
-poetry add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@master
+poetry add git+https://github.com/Misty02600/nonebot-plugin-jmdownloader@main
 ```
 </details>
 
