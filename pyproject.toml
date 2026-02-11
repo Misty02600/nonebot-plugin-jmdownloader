@@ -101,7 +101,7 @@ addopts = [
 ]
 pythonpath = ["src", "tests"] # 添加到 Python 路径，确保模块可导入
 asyncio_mode = "auto" # 自动检测异步测试函数，无需手动标记 @pytest.mark.asyncio
-asyncio_default_fixture_loop_scope = "function" # 每个测试函数使用独立的事件循环
+asyncio_default_fixture_loop_scope = "session" # 与 conftest.py 中 loop_scope="session" 保持一致（提高效率）
 
 [tool.ruff]
 line-length = 88       # 每行最大字符数（与 Black 保持一致）

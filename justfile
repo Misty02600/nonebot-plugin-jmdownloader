@@ -15,6 +15,7 @@ test:
 bump:
     uv run cz bump
     uv lock
+    git push origin --force-with-lease
 
 # 生成 changelog
 changelog:
