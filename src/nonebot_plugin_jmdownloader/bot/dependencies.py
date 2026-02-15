@@ -24,30 +24,40 @@ require("nonebot_plugin_localstore")
 
 from nonebot_plugin_localstore import get_plugin_cache_dir, get_plugin_data_dir
 
+plugin_config = get_plugin_config(PluginConfig)
+driver_config = get_driver().config
+
 # region Nonebot依赖
 
-plugin_config = get_plugin_config(PluginConfig)
 
-
-def get_driver_config():
-    """获取 NoneBot 全局配置"""
-    return get_driver().config
-
-
-DriverConfigDep = Annotated[object, Depends(get_driver_config)]
-
-
-def get_random_nickname(config: DriverConfigDep) -> str:
+def get_random_nickname() -> str:
     """获取一个随机机器人昵称"""
     import random
 
-    nicknames = getattr(config, "nickname", set()) or {"猫猫"}
+    nicknames = getattr(driver_config, "nickname", set()) or {"猫猫"}
     return random.choice(tuple(nicknames))
 
 
 RandomNickname = Annotated[str, Depends(get_random_nickname)]
 
 # endregion
+
+
+# region onev11通用依赖
+
+
+async def target_user_id(matcher: Matcher, arg: Message = CommandArg()) -> int:
+    """解析并验证 @ 目标必填"""
+    for seg in arg:
+        if seg.type == "at" and seg.data.get("qq") and seg.data["qq"] != "all":
+            return int(seg.data["qq"])
+    await matcher.finish("请使用@指定目标用户")
+
+
+TargetUserId = Annotated[int, Depends(target_user_id)]
+
+# endregion
+
 
 # region JMService
 
@@ -157,20 +167,5 @@ async def get_photo(
 
 
 Photo = Annotated[JmPhotoDetail, Depends(get_photo)]
-
-# endregion
-
-# region TargetUserId
-
-
-async def target_user_id(matcher: Matcher, arg: Message = CommandArg()) -> int:
-    """解析并验证 @ 目标必填"""
-    for seg in arg:
-        if seg.type == "at" and seg.data.get("qq") and seg.data["qq"] != "all":
-            return int(seg.data["qq"])
-    await matcher.finish("请使用@指定目标用户")
-
-
-TargetUserId = Annotated[int, Depends(target_user_id)]
 
 # endregion
