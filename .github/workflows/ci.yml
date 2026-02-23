@@ -25,11 +25,22 @@ jobs:
           python-version: "3.11"
           version: latest
 
+<<<<<<< HEAD
       - name: Ruff check
         run: uvx ruff check --output-format=github .
 
       - name: Ruff format check
         run: uvx ruff format --check .
+=======
+      - name: Install Dependencies
+        run: uv sync --no-dev --group test
+
+      - name: Ruff check
+        run: uv run ruff check --output-format=github .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
 
   basedpyright:
     name: BasedPyright
@@ -45,10 +56,17 @@ jobs:
           version: "latest"
 
       - name: Install Dependencies
+<<<<<<< HEAD
         run: uv sync
 
       - name: Static typing check
         run: uvx basedpyright
+=======
+        run: uv sync --no-dev --group test
+
+      - name: Static typing check
+        run: uv run basedpyright
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
 
   test:
     name: Coverage
@@ -65,10 +83,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+<<<<<<< HEAD
         python-version: ["3.11", "3.12", "3.13"]
         # os: [ubuntu-latest, windows-latest, macos-latest]
         # pydantic-version: ["v1", "v2"]
 
+=======
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+        # pydantic-version: ["v1", "v2"]
+
+    # Python 3.14 实验性支持，允许失败
+    continue-on-error: ${{ matrix.python-version == '3.14' }}
+
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
     env:
       # OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -85,7 +113,11 @@ jobs:
           version: latest
 
       - name: Install Dependencies
+<<<<<<< HEAD
         run: uv sync
+=======
+        run: uv sync --no-dev --group test
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
 
       - name: Run Pytest
         run: uv run pytest --cov=src --cov-report xml --junitxml=./junit.xml -n auto

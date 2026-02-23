@@ -1,6 +1,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
+<<<<<<< HEAD
     "config:recommended"
   ]
 }
+=======
+    "config:recommended",
+    ":enablePreCommit",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "onboarding": false,
+  "timezone": "Asia/Shanghai",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "prConcurrentLimit": 3
+}
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
