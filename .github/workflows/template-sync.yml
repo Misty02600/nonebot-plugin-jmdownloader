@@ -20,11 +20,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+<<<<<<< HEAD
       - name: Sync template (no auto conflict choice)
+=======
+      - name: Sync template
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
         uses: AndreasAugustin/actions-template-sync@v2
         with:
           target_gh_token: ${{ secrets.TEMPLATE_SYNC_PAT }}
           source_repo_path: Misty02600/nonebot-plugin-template
           upstream_branch: main
           pr_labels: template_sync
+<<<<<<< HEAD
+=======
+          is_pr_cleanup: true
+>>>>>>> 4813fe23d0f4b9a8c0755f5ff9d4e2bbb6d4c394
           git_remote_pull_params: "--allow-unrelated-histories --squash"
