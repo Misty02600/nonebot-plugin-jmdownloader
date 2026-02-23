@@ -6,6 +6,7 @@
 注意：部分依赖可能调用 matcher.finish() 终止流程，这是允许的。
 """
 
+import asyncio
 from typing import Annotated
 
 from jmcomic import JmcomicException, JmPhotoDetail, MissingAlbumPhotoException
@@ -64,28 +65,44 @@ TargetUserId = Annotated[int, Depends(target_user_id)]
 plugin_cache_dir = get_plugin_cache_dir()
 _cache_dir = plugin_cache_dir.as_posix()
 
-try:
-    _jm_service = create_jm_service(
-        JMConfig(
-            cache_dir=_cache_dir,
-            logger=logger,
-            output_format=plugin_config.jmcomic_output_format,
-            zip_password=plugin_config.jmcomic_zip_password,
-            log=plugin_config.jmcomic_log,
-            proxies=plugin_config.jmcomic_proxies,
-            thread_count=plugin_config.jmcomic_thread_count,
-            username=plugin_config.jmcomic_username,
-            password=plugin_config.jmcomic_password,
-            modify_md5=plugin_config.jmcomic_modify_real_md5,
+_jm_service: JMService | None = None
+
+
+@get_driver().on_startup
+async def _init_jm_service():
+    """启动时初始化 JM 客户端
+
+    延迟到 on_startup 阶段，避免加载插件时就发起网络请求。
+    create_jm_service 内部会通过 build_jm_client() 发起同步网络请求
+    （获取最新 API 域名、登录等），因此使用 asyncio.to_thread 避免阻塞事件循环。
+    """
+    global _jm_service
+    try:
+        _jm_service = await asyncio.to_thread(
+            create_jm_service,
+            JMConfig(
+                cache_dir=_cache_dir,
+                logger=logger,
+                output_format=plugin_config.jmcomic_output_format,
+                zip_password=plugin_config.jmcomic_zip_password,
+                log=plugin_config.jmcomic_log,
+                proxies=plugin_config.jmcomic_proxies,
+                thread_count=plugin_config.jmcomic_thread_count,
+                username=plugin_config.jmcomic_username,
+                password=plugin_config.jmcomic_password,
+                modify_md5=plugin_config.jmcomic_modify_real_md5,
+            ),
         )
-    )
-except JmcomicException as e:
-    logger.error(f"初始化 JM 客户端失败: {e}")
-    raise
+        logger.info("JM 客户端初始化成功")
+    except JmcomicException as e:
+        logger.error(f"初始化 JM 客户端失败: {e}")
+        raise
 
 
 def get_jm_service() -> JMService:
     """获取 JMService 实例"""
+    if _jm_service is None:
+        raise RuntimeError("JM 客户端尚未初始化，请等待启动完成")
     return _jm_service
 
 
