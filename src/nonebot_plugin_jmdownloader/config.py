@@ -1,6 +1,11 @@
 """插件配置"""
 
-from typing import Self
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
