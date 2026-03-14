@@ -4,7 +4,7 @@ version = "1.2.2"
 description = "基于 Nonebot2 的 JMComic 插件"
 readme = "README.md"
 authors = [{ name = "Misty02600", email = "xiao02600@gmail.com" }]
-requires-python = ">=3.10, <4.0"
+requires-python = ">=3.11, <4.0"
 dependencies = [
   "httpx>=0.27.0,<1.0.0",
   "nonebot2>=2.4.4",
@@ -76,7 +76,7 @@ exclude_lines = [
 
 [tool.pyright]
 include = ["src", "tests"] # 要检查的目录
-pythonVersion = "3.10"     # 目标 Python 版本（影响可用的类型特性）
+pythonVersion = "3.11"     # 目标 Python 版本（影响可用的类型特性）
 pythonPlatform = "All"     # 目标平台：All | Linux | Windows | Darwin
 # typeCheckingMode 类型检查严格程度，可选值：
 #   - "off"：      关闭类型检查

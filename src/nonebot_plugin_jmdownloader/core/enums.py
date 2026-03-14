@@ -1,17 +1,6 @@
 """领域枚举定义"""
 
-import sys
-
-if sys.version_info >= (3, 11):
-    from enum import StrEnum
-else:
-    from enum import Enum
-
-    class StrEnum(str, Enum):
-        """StrEnum backport for Python < 3.11"""
-
-        def __str__(self) -> str:
-            return self.value
+from enum import StrEnum
 
 
 class OutputFormat(StrEnum):
