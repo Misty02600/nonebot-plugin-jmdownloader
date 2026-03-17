@@ -81,13 +81,12 @@ _jm_service = JMService(_jm_option_config, logger)
 
 
 _background_tasks: set[asyncio.Task[bool]] = set()
-_create_background_task = asyncio.create_task
 
 
 @get_driver().on_startup
 async def _warmup_jm_client():
     """启动时调度后台预热，不阻塞 Bot 启动。"""
-    task = _create_background_task(_jm_service.warmup())
+    task = asyncio.create_task(_jm_service.warmup())
     _background_tasks.add(task)
     task.add_done_callback(_background_tasks.discard)
 
