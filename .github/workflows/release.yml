@@ -9,8 +9,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    environment:
-      name: release
+    environment: release
     permissions:
       id-token: write
       contents: write
@@ -29,6 +28,7 @@ jobs:
 
       - name: Get Version
         id: version
+        shell: bash
         run: |
           echo "VERSION=$(uv version --short)" >> $GITHUB_OUTPUT
           echo "TAG_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
@@ -55,6 +55,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # name: ${{ github.event.repository.name }} ${{ steps.version.outputs.TAG_NAME }}
+          name: ${{ steps.version.outputs.TAG_NAME }}
           body: ${{ steps.changelog.outputs.content }}
           files: |
             dist/*.tar.gz

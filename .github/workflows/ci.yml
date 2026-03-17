@@ -25,11 +25,14 @@ jobs:
           python-version: "3.11"
           version: latest
 
+      - name: Install Dependencies
+        run: uv sync --no-dev --group test
+
       - name: Ruff check
-        run: uvx ruff check --output-format=github .
+        run: uv run ruff check --output-format=github .
 
       - name: Ruff format check
-        run: uvx ruff format --check .
+        run: uv run ruff format --check .
 
   basedpyright:
     name: BasedPyright
@@ -45,10 +48,10 @@ jobs:
           version: "latest"
 
       - name: Install Dependencies
-        run: uv sync
+        run: uv sync --no-dev --group test
 
       - name: Static typing check
-        run: uvx basedpyright
+        run: uv run basedpyright
 
   test:
     name: Coverage
@@ -57,17 +60,16 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    concurrency:
-      # group: test-coverage-${{ github.ref }}-${{ matrix.python-version }}-${{ matrix.os }}
-      group: coverage-${{ github.ref }}-${{ matrix.python-version }}
-      cancel-in-progress: true
 
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
         # os: [ubuntu-latest, windows-latest, macos-latest]
         # pydantic-version: ["v1", "v2"]
+
+    # Python 3.14 实验性支持，允许失败
+    continue-on-error: ${{ matrix.python-version == '3.14' }}
 
     env:
       # OS: ${{ matrix.os }}
@@ -85,10 +87,13 @@ jobs:
           version: latest
 
       - name: Install Dependencies
-        run: uv sync
+        run: uv sync --no-dev --group test
+
+      # - name: Install Playwright browsers
+      #   run: uv run playwright install --with-deps chromium
 
       - name: Run Pytest
-        run: uv run pytest --cov=src --cov-report xml --junitxml=./junit.xml -n auto
+        run: uv run pytest --cov=src --cov-report xml --junitxml=./junit.xml
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
