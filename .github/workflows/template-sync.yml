@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write       # 需要写权限以推送到分支
       pull-requests: write  # 需要权限以创建 PR
+      workflows: write      # 允许同步 PR 包含 workflow 文件变更
 
     steps:
       - name: Checkout
