@@ -8,9 +8,11 @@ import shutil
 from nonebot import logger, require
 
 require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_localstore")
 from nonebot_plugin_apscheduler import scheduler
+from nonebot_plugin_localstore import get_plugin_cache_dir
 
-from ..dependencies import _data_manager, plugin_cache_dir
+from ..dependencies import _data_manager
 
 
 @scheduler.scheduled_job(
@@ -30,6 +32,7 @@ async def reset_user_limits():
 async def clear_cache_dir():
     """每天凌晨3点清理缓存文件夹"""
     try:
+        plugin_cache_dir = get_plugin_cache_dir()
         if plugin_cache_dir.exists():
             shutil.rmtree(plugin_cache_dir)
             plugin_cache_dir.mkdir(parents=True, exist_ok=True)

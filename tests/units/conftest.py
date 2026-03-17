@@ -36,12 +36,19 @@ def import_module_directly(module_name: str, subpath: str):
 import_module_directly(
     "nonebot_plugin_jmdownloader.core.search_session", "core/search_session.py"
 )
+import_module_directly("nonebot_plugin_jmdownloader.core.enums", "core/enums.py")
 import_module_directly(
     "nonebot_plugin_jmdownloader.core.data_models", "core/data_models.py"
 )
 # infra 模块依赖 core 模块，所以需要在 core 之后导入
 import_module_directly(
+    "nonebot_plugin_jmdownloader.infra.pdf_utils", "infra/pdf_utils.py"
+)
+import_module_directly(
     "nonebot_plugin_jmdownloader.infra.search_session", "infra/search_session.py"
+)
+import_module_directly(
+    "nonebot_plugin_jmdownloader.infra.jm_service", "infra/jm_service.py"
 )
 
 

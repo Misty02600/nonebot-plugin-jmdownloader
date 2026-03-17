@@ -147,7 +147,11 @@ async def group_download_and_upload(
 ):
     """下载文件并上传群文件（仅群聊触发）"""
     # 下载
-    result = await jm.prepare_photo_file(photo)
+    try:
+        result = await jm.prepare_photo_file(photo)
+    except Exception:
+        logger.warning(f"下载本子失败: photo_id={photo.id}", exc_info=True)
+        await matcher.finish("下载失败")
     if result is None:
         await matcher.finish("下载失败")
 
