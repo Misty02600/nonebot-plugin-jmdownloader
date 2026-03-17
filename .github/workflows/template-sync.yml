@@ -23,9 +23,8 @@ jobs:
       - name: Sync template
         uses: AndreasAugustin/actions-template-sync@v2
         with:
-          target_gh_token: ${{ secrets.TEMPLATE_SYNC_PAT }}
+          target_gh_token: ${{ github.token }}
           source_repo_path: Misty02600/nonebot-plugin-template
           upstream_branch: main
           pr_labels: template_sync
           is_pr_cleanup: true
-          git_remote_pull_params: "--allow-unrelated-histories --squash"
