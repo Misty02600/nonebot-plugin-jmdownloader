@@ -28,3 +28,4 @@ jobs:
           upstream_branch: main
           pr_labels: template_sync
           is_pr_cleanup: true
+          template_sync_ignore_file_path: .github/.templatesyncignore
