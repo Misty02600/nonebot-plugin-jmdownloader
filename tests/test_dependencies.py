@@ -1,4 +1,3 @@
-import asyncio
 from typing import Any, ClassVar, cast
 
 import pytest
@@ -56,19 +55,19 @@ async def test_startup_init_failure_does_not_raise(
     monkeypatch: pytest.MonkeyPatch,
 ):
     dependencies = dependencies_module
-    tasks: list[asyncio.Task[bool]] = []
 
     service = FakeService(warmup_results=[False])
     monkeypatch.setattr(dependencies, "_jm_service", service)
-    monkeypatch.setattr(
-        dependencies,
-        "_create_background_task",
-        lambda coro: tasks.append(asyncio.tasks.create_task(coro)) or tasks[-1],
-    )
+    dependencies._background_tasks.clear()
 
     await dependencies._warmup_jm_client()
+
+    # 等待后台任务完成
+    tasks = list(dependencies._background_tasks)
     assert len(tasks) == 1
-    assert await tasks[0] is False
+    result = await tasks[0]
+    assert result is False
+    assert service.warmup_calls == 1
 
 
 def test_get_jm_service_returns_shared_service_without_warmup(
