@@ -9,6 +9,10 @@ class OutputFormat(StrEnum):
     PDF = "pdf"
     ZIP = "zip"
 
+    @property
+    def ext(self) -> str:
+        return f".{self.value}"
+
 
 class GroupListMode(StrEnum):
     """群列表模式"""

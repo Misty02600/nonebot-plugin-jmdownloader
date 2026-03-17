@@ -7,12 +7,10 @@ from .dependencies import (
     DataManagerDep,
     JmServiceDep,
     SessionsDep,
-    plugin_cache_dir,
 )
 
 __all__ = [
     "DataManagerDep",
     "JmServiceDep",
     "SessionsDep",
-    "plugin_cache_dir",
 ]

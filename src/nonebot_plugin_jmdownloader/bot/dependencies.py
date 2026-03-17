@@ -9,7 +9,7 @@
 import asyncio
 from typing import Annotated
 
-from jmcomic import JmcomicException, JmPhotoDetail, MissingAlbumPhotoException
+from jmcomic import JmPhotoDetail, MissingAlbumPhotoException
 from nonebot import get_driver, get_plugin_config, logger, require
 from nonebot.adapters.onebot.v11 import Message
 from nonebot.matcher import Matcher
@@ -17,7 +17,10 @@ from nonebot.params import CommandArg, Depends
 
 from ..config import PluginConfig
 from ..infra.data_manager import DataManager
-from ..infra.jm_service import JMConfig, JMService, create_jm_service
+from ..infra.jm_service import (
+    JMOptionContext,
+    JMService,
+)
 from ..infra.search_session import SessionCache
 
 # 确保依赖插件已加载
@@ -27,7 +30,6 @@ from nonebot_plugin_localstore import get_plugin_cache_dir, get_plugin_data_dir
 
 plugin_config = get_plugin_config(PluginConfig)
 driver_config = get_driver().config
-
 # region Nonebot依赖
 
 
@@ -62,47 +64,36 @@ TargetUserId = Annotated[int, Depends(target_user_id)]
 
 # region JMService
 
-plugin_cache_dir = get_plugin_cache_dir()
-_cache_dir = plugin_cache_dir.as_posix()
+_cache_dir = get_plugin_cache_dir().as_posix()
 
-_jm_service: JMService | None = None
+_jm_option_config = JMOptionContext(
+    cache_dir=_cache_dir,
+    output_format=plugin_config.jmcomic_output_format,
+    zip_password=plugin_config.jmcomic_zip_password,
+    log=plugin_config.jmcomic_log,
+    proxies=plugin_config.jmcomic_proxies,
+    thread_count=plugin_config.jmcomic_thread_count,
+    username=plugin_config.jmcomic_username,
+    password=plugin_config.jmcomic_password,
+    modify_md5=plugin_config.jmcomic_modify_real_md5,
+)
+_jm_service = JMService(_jm_option_config, logger)
+
+
+_background_tasks: set[asyncio.Task[bool]] = set()
+_create_background_task = asyncio.create_task
 
 
 @get_driver().on_startup
-async def _init_jm_service():
-    """启动时初始化 JM 客户端
-
-    延迟到 on_startup 阶段，避免加载插件时就发起网络请求。
-    create_jm_service 内部会通过 build_jm_client() 发起同步网络请求
-    （获取最新 API 域名、登录等），因此使用 asyncio.to_thread 避免阻塞事件循环。
-    """
-    global _jm_service
-    try:
-        _jm_service = await asyncio.to_thread(
-            create_jm_service,
-            JMConfig(
-                cache_dir=_cache_dir,
-                logger=logger,
-                output_format=plugin_config.jmcomic_output_format,
-                zip_password=plugin_config.jmcomic_zip_password,
-                log=plugin_config.jmcomic_log,
-                proxies=plugin_config.jmcomic_proxies,
-                thread_count=plugin_config.jmcomic_thread_count,
-                username=plugin_config.jmcomic_username,
-                password=plugin_config.jmcomic_password,
-                modify_md5=plugin_config.jmcomic_modify_real_md5,
-            ),
-        )
-        logger.info("JM 客户端初始化成功")
-    except JmcomicException as e:
-        logger.error(f"初始化 JM 客户端失败: {e}")
-        raise
+async def _warmup_jm_client():
+    """启动时调度后台预热，不阻塞 Bot 启动。"""
+    task = _create_background_task(_jm_service.warmup())
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 
 def get_jm_service() -> JMService:
-    """获取 JMService 实例"""
-    if _jm_service is None:
-        raise RuntimeError("JM 客户端尚未初始化，请等待启动完成")
+    """获取共享的 JMService。"""
     return _jm_service
 
 
@@ -180,6 +171,7 @@ async def get_photo(
     except MissingAlbumPhotoException:
         await matcher.finish("未查找到本子")
     except Exception:
+        logger.warning(f"获取本子信息失败: photo_id={photo_id}", exc_info=True)
         await matcher.finish("查询时发生错误")
 
 

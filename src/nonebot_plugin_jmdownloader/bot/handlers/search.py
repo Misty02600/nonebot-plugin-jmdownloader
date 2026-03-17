@@ -5,7 +5,7 @@ jm搜索 和 jm下一页 命令，群聊和私聊统一处理。
 
 import asyncio
 
-from nonebot import on_command
+from nonebot import logger, on_command
 from nonebot.adapters.onebot.v11 import (
     ActionFailed,
     Bot,
@@ -91,6 +91,7 @@ async def search_handler(
     try:
         page = await jm.search(query)
     except Exception:
+        logger.warning(f"搜索失败: query={query}", exc_info=True)
         await bot.delete_msg(message_id=searching_msg_id)
         await matcher.finish("搜索失败", reply_message=True)
 
@@ -155,7 +156,10 @@ async def next_page_handler(
             next_page = await jm.search(session.query, page=session.api_page + 1)
             session.append_results(list(next_page.iter_id()))
         except Exception:
-            pass  # 获取下一页失败，继续显示已有结果
+            logger.warning(
+                f"获取搜索下一页失败: query={session.query}, page={session.api_page + 1}",
+                exc_info=True,
+            )
 
     current_results = session.get_current_page()
     blocked_message = f"{nickname}吃掉了一个不豪吃的本子"

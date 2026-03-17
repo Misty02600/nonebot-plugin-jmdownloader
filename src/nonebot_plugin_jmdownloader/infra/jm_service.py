@@ -14,11 +14,10 @@ from typing import TYPE_CHECKING
 import httpx
 from jmcomic import (
     JmcomicClient,
-    JmcomicException,
     JmDownloader,
     JmModuleConfig,
+    JmOption,
     JmPhotoDetail,
-    MissingAlbumPhotoException,
     create_option_by_str,
 )
 
@@ -37,11 +36,10 @@ class AvatarDownloadError(Exception):
 
 
 @dataclass
-class JMConfig:
-    """JM 客户端配置"""
+class JMOptionContext:
+    """用于构造 jmcomic option 的配置。"""
 
     cache_dir: str
-    logger: Logger
     output_format: OutputFormat = OutputFormat.PDF
     zip_password: str | None = None
     log: bool = False
@@ -52,15 +50,8 @@ class JMConfig:
     modify_md5: bool = False
 
 
-def create_jm_service(config: JMConfig) -> "JMService":
-    """创建 JMService 实例
-
-    Args:
-        config: JM 配置
-
-    Returns:
-        JMService 实例
-    """
+def create_jm_option(config: JMOptionContext) -> JmOption:
+    """根据配置构造一个新的 JmOption 实例。"""
 
     def quote(value: str) -> str:
         """安全地引用 YAML 字符串值"""
@@ -103,13 +94,7 @@ def create_jm_service(config: JMConfig) -> "JMService":
         delete_original_file: true{encrypt_block}
 """
         case _:
-            # 默认 PDF
-            plugin_block = f"""  after_photo:
-    - plugin: img2pdf
-      kwargs:
-        pdf_dir: {quote(config.cache_dir)}
-        filename_rule: Pid
-"""
+            raise ValueError(f"不支持的输出格式: {config.output_format!r}")
 
     yaml_config = f"""\
 log: {config.log}
@@ -134,145 +119,74 @@ dir_rule:
 plugins:
 {login_block}{plugin_block}"""
 
-    option = create_option_by_str(yaml_config, mode="yml")
-    return JMService(
-        option.build_jm_client(),
-        JmDownloader(option),
-        Path(config.cache_dir),
-        config.logger,
-        config.output_format,
-        config.modify_md5,
-    )
+    return create_option_by_str(yaml_config, mode="yml")
 
 
 # endregion
 
 
 class JMService:
-    """JM API 服务
+    """封装 JM 客户端操作，提供统一的异步接口。"""
 
-    封装 JM 客户端操作，提供统一的异步接口。
-
-    Attributes:
-        client: JM API 客户端
-        downloader: JM 下载器
-        cache_dir: 缓存目录
-        logger: 日志器
-        output_format: 输出格式 ("pdf" | "zip")
-        modify_md5: 是否修改 MD5（仅 PDF 格式有效）
-    """
-
-    def __init__(
-        self,
-        client: JmcomicClient,
-        downloader: JmDownloader,
-        cache_dir: Path,
-        logger: Logger,
-        output_format: OutputFormat = OutputFormat.PDF,
-        modify_md5: bool = False,
-    ):
-        self._client = client
-        self._downloader = downloader
-        self._cache_dir = cache_dir
+    def __init__(self, config: JMOptionContext, logger: Logger):
+        self._config = config
+        self._jm_option = create_jm_option(config)
         self._logger = logger
-        self._output_format = output_format
-        self._modify_md5 = modify_md5
 
-    # region 获取本子信息
+    async def warmup(self):
+        """异步预热 JM 客户端（可选）。"""
+        try:
+            self._logger.info("正在预热JM客户端...")
+            await asyncio.to_thread(self._get_client)
+        except Exception as e:
+            self._logger.warning(f"JM客户端预热失败: {e}")
+            return False
+        else:
+            self._logger.info("JM客户端预热成功")
+            return True
+
+    def _get_client(self) -> JmcomicClient:
+        return self._jm_option.build_jm_client()
+
+    @property
+    def output_dir(self) -> Path:
+        return Path(self._jm_option.dir_rule.base_dir)
 
     async def get_photo(self, photo_id: str) -> JmPhotoDetail:
-        """异步获取本子信息
-
-        Args:
-            photo_id: photo/album ID
-
-        Returns:
-            JmPhotoDetail 对象
+        """异步获取本子信息。
 
         Raises:
             MissingAlbumPhotoException: 当 photo 不存在时
-            Exception: 其他获取失败的情况
         """
+        return await asyncio.to_thread(self._get_client().get_photo_detail, photo_id)
 
-        def _sync() -> JmPhotoDetail:
-            try:
-                return self._client.get_photo_detail(photo_id)
-            except MissingAlbumPhotoException:
-                raise
-            except Exception:
-                self._logger.exception(f"获取本子信息失败: photo_id={photo_id}")
-                raise
+    async def download_photo(self, photo: JmPhotoDetail) -> None:
+        """异步下载本子。"""
 
-        return await asyncio.to_thread(_sync)
+        def _sync() -> None:
+            downloader = JmDownloader(self._jm_option)
+            with downloader as dler:
+                dler.download_by_photo_detail(photo)
 
-    # endregion
-
-    # region 下载本子
-
-    async def download_photo(self, photo: JmPhotoDetail) -> bool:
-        """异步下载本子
-
-        Args:
-            photo: JmPhotoDetail 对象
-
-        Returns:
-            下载是否成功
-        """
-
-        def _sync() -> bool:
-            try:
-                # 清理上次下载残留的全部状态（单例复用时防止无限累积）
-                # - download_success_dict: 防止 ZipPlugin 遍历旧记录操作已删除文件
-                # - download_failed_image/photo: 防止失败记录跨任务累积导致内存泄漏
-                self._downloader.download_success_dict.clear()
-                self._downloader.download_failed_image.clear()
-                self._downloader.download_failed_photo.clear()
-                with self._downloader as dler:
-                    dler.download_by_photo_detail(photo)
-                return True
-            except JmcomicException:
-                self._logger.exception(f"下载本子失败: photo_id={photo.id}")
-                return False
-
-        return await asyncio.to_thread(_sync)
+        await asyncio.to_thread(_sync)
 
     async def prepare_photo_file(self, photo: JmPhotoDetail) -> tuple[str, str] | None:
-        """下载并准备输出文件
+        """下载并准备输出文件，返回 (文件路径, 扩展名) 或 None。"""
+        fmt = self._config.output_format
+        ext = fmt.ext
+        file_path = self.output_dir / f"{photo.id}{ext}"
 
-        Args:
-            photo: JmPhotoDetail 对象
-
-        Returns:
-            (文件路径, 文件扩展名) 元组，失败返回 None
-        """
-        # 根据输出格式确定文件扩展名
-        match self._output_format:
-            case OutputFormat.PDF:
-                ext = ".pdf"
-            case OutputFormat.ZIP:
-                ext = ".zip"
-            case _:
-                ext = ".pdf"
-
-        file_path = self._cache_dir / f"{photo.id}{ext}"
-
-        # 下载（如果不存在）
         if not file_path.exists():
-            success = await self.download_photo(photo)
-            if not success:
-                return None
-            # 验证输出文件确实已生成（插件可能失败）
+            await self.download_photo(photo)
             if not file_path.exists():
                 self._logger.error(
-                    f"下载后输出文件不存在: {file_path}，"
-                    f"可能是 {self._output_format} 插件执行失败"
+                    f"下载后输出文件不存在: {file_path}，可能是 {fmt} 插件执行失败"
                 )
                 return None
 
-        # 可选的 MD5 修改（仅 PDF 格式有效）
-        if self._output_format == OutputFormat.PDF and self._modify_md5:
+        if fmt == OutputFormat.PDF and self._config.modify_md5:
             modified_path = await prepare_pdf_with_unique_md5(
-                str(file_path), str(self._cache_dir), str(photo.id)
+                str(file_path), str(self.output_dir), str(photo.id)
             )
             if modified_path is None:
                 return None
@@ -280,89 +194,43 @@ class JMService:
 
         return (str(file_path), ext)
 
-    # endregion
-
-    # region 搜索本子
-
     async def search(self, query: str, page: int = 1):
-        """异步搜索本子
-
-        Args:
-            query: 搜索关键词
-            page: 页码（从 1 开始）
-
-        Returns:
-            搜索结果页或 None（搜索失败时）
-        """
-
-        def _sync():
-            try:
-                return self._client.search_site(search_query=query, page=page)
-            except Exception:
-                self._logger.exception(f"搜索本子请求失败: query={query}, page={page}")
-                raise
-
-        return await asyncio.to_thread(_sync)
-
-    # endregion
-
-    # region 封面下载
+        """异步搜索本子。"""
+        return await asyncio.to_thread(
+            self._get_client().search_site, search_query=query, page=page
+        )
 
     async def download_avatar(self, photo_id: int | str) -> BytesIO:
-        """下载本子封面
-
-        Args:
-            photo_id: photo/album ID
-
-        Returns:
-            封面图片的 BytesIO
+        """下载本子封面。
 
         Raises:
-            AvatarDownloadError: 下载失败时
+            AvatarDownloadError: 所有域名均失败时
         """
-        for domain in JmModuleConfig.DOMAIN_IMAGE_LIST:
-            url = f"https://{domain}/media/albums/{photo_id}.jpg"
-            try:
-                async with httpx.AsyncClient() as http_client:
+        async with httpx.AsyncClient() as http_client:
+            for domain in JmModuleConfig.DOMAIN_IMAGE_LIST:
+                url = f"https://{domain}/media/albums/{photo_id}.jpg"
+                try:
                     response = await http_client.get(url, timeout=40)
                     response.raise_for_status()
-
-                    if not response.content or len(response.content) < 1024:
-                        self._logger.debug(
-                            f"下载{photo_id}封面失败: domain={domain},内容过小"
-                        )
-                        continue
-
-                    return BytesIO(response.content)
-
-            except (httpx.HTTPStatusError, httpx.RequestError) as e:
-                self._logger.debug(
-                    f"下载{photo_id}封面失败: domain={domain}, error={e}"
-                )
-                continue
+                    if len(response.content) >= 1024:
+                        return BytesIO(response.content)
+                    self._logger.debug(
+                        f"下载{photo_id}封面失败: domain={domain},内容过小"
+                    )
+                except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                    self._logger.debug(
+                        f"下载{photo_id}封面失败: domain={domain}, error={e}"
+                    )
 
         self._logger.warning(f"下载{photo_id}封面失败")
         raise AvatarDownloadError(photo_id)
 
-    # endregion
-
-    # region 格式化本子信息
-
     @staticmethod
     def format_photo_info(photo: JmPhotoDetail) -> str:
-        """格式化本子基本信息
-
-        Args:
-            photo: 本子详情对象
-
-        Returns:
-            格式化的信息文本，包含 ID、标题、作者、标签
-        """
+        """格式化本子基本信息（ID、标题、作者、标签）。"""
         lines = [
             f"jm{photo.id} | {photo.title}",
             f"🎨 作者: {photo.author}",
             "🔖 标签: " + " ".join(f"#{tag}" for tag in (photo.tags or [])),
         ]
         return "\n".join(lines)
-
-    # endregion
