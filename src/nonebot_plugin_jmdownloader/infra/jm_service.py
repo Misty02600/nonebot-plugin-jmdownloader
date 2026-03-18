@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 from jmcomic import (
+    JmAlbumDetail,
     JmcomicClient,
     JmDownloader,
     JmModuleConfig,
@@ -160,6 +161,18 @@ class JMService:
         """
         return await asyncio.to_thread(self._get_client().get_photo_detail, photo_id)
 
+    async def get_album(self, album_id: str):
+        """异步获取专辑信息。
+
+        Raises:
+            MissingAlbumPhotoException: 当 album 不存在时
+        """
+        return await asyncio.to_thread(self._get_client().get_album_detail, album_id)
+
+    async def get_album_from_photo(self, photo: JmPhotoDetail) -> JmAlbumDetail:
+        """从 Photo 获取所属 Album。"""
+        return await self.get_album(photo.album_id)
+
     async def download_photo(self, photo: JmPhotoDetail) -> None:
         """异步下载本子。"""
 
@@ -226,11 +239,21 @@ class JMService:
         raise AvatarDownloadError(photo_id)
 
     @staticmethod
-    def format_photo_info(photo: JmPhotoDetail) -> str:
-        """格式化本子基本信息（ID、标题、作者、标签）。"""
+    def format_photo_info(
+        photo: JmPhotoDetail, album: JmAlbumDetail | None = None
+    ) -> str:
+        """格式化本子信息（ID、标题、作者、标签、专辑信息）。"""
         lines = [
             f"jm{photo.id} | {photo.title}",
             f"🎨 作者: {photo.author}",
             "🔖 标签: " + " ".join(f"#{tag}" for tag in (photo.tags or [])),
         ]
+
+        if album:
+            album_index = getattr(photo, "album_index", None)
+            episode_index = album_index + 1 if album_index is not None else "?"
+            lines.append(
+                f"📚 第{episode_index}话 | jm{album.id} (共{len(album.episode_list)}话)"
+            )
+
         return "\n".join(lines)
