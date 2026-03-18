@@ -113,6 +113,7 @@ plugins = ["nonebot_plugin_jmdownloader"]
 |    jmcomic_zip_password     |  否   |    无     |    ZIP 压缩包密码（仅 zip 格式有效）     |
 |   jmcomic_modify_real_md5   |  否   |   False   | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
 |  jmcomic_results_per_page   |  否   |    20     |          每页显示的搜索结果数量          |
+|   jmcomic_max_page_count    |  否   |    150    |     单次下载最大页数限制，0表示不限制     |
 | jmcomic_punish_on_violation |  否   |   True    | 群员下载违规内容时是否惩罚（禁言+拉黑）  |
 
 **群列表模式说明：**
@@ -148,6 +149,8 @@ JMCOMIC_OUTPUT_FORMAT=pdf
 JMCOMIC_MODIFY_REAL_MD5=False
 # 每页显示的搜索结果数量，越多每次发送时间越长且越容易被吞，建议40以内
 JMCOMIC_RESULTS_PER_PAGE=20
+# 单次下载最大页数限制，0表示不限制（防止下载过大的本子）
+JMCOMIC_MAX_PAGE_COUNT=200
 # 群员下载违规内容时是否惩罚（禁言+拉黑）
 JMCOMIC_PUNISH_ON_VIOLATION=True
 ```

@@ -64,6 +64,22 @@ def build_progress_message(
 # region 事件处理函数
 
 
+async def page_count_check(event: MessageEvent, matcher: Matcher, photo: Photo):
+    """检查页数是否超过限制（群聊和私聊都触发）"""
+    max_pages = plugin_config.jmcomic_max_page_count
+    if max_pages <= 0:
+        return
+
+    if not hasattr(photo, "page_arr") or not photo.page_arr:
+        return
+
+    page_count = len(photo.page_arr)
+    if page_count > max_pages:
+        await matcher.finish(
+            f"该本子共 {page_count} 页，超过单次下载限制({max_pages}页)"
+        )
+
+
 async def photo_restriction_check(
     bot: Bot,
     event: GroupMessageEvent,
@@ -225,11 +241,12 @@ jm_download = on_command(
         group_enabled_check,  # 2. 群聊启用检查（仅群聊，未启用终止）
         user_blacklist_check,  # 3. 群聊黑名单检查（仅群聊）
         download_limit_check,  # 4. 下载次数检查（群聊和私聊）
-        photo_restriction_check,  # 5. 内容限制检查（仅群聊）
-        send_progress_message,  # 6. 发送进度消息（不扣额度）
-        group_download_and_upload,  # 7. 下载 + 上传群文件（仅群聊）
-        private_download_and_upload,  # 8. 下载 + 上传私聊文件（仅私聊）
-        deduct_limit,  # 9. 扣减额度（下载成功后静默扣减）
+        page_count_check,  # 5. 页数限制检查（群聊和私聊）
+        photo_restriction_check,  # 6. 内容限制检查（仅群聊）
+        send_progress_message,  # 7. 发送进度消息（不扣额度）
+        group_download_and_upload,  # 8. 下载 + 上传群文件（仅群聊）
+        private_download_and_upload,  # 9. 下载 + 上传私聊文件（仅私聊）
+        deduct_limit,  # 10. 扣减额度（下载成功后静默扣减）
     ],
 )
 
