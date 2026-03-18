@@ -3,6 +3,7 @@
 jm查询 命令，群聊和私聊统一处理。
 """
 
+from jmcomic import JmAlbumDetail
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import (
     ActionFailed,
@@ -13,6 +14,7 @@ from nonebot.adapters.onebot.v11 import (
 )
 from nonebot.matcher import Matcher
 
+from ...infra.jm_service import AvatarDownloadError
 from .. import JmServiceDep
 from ..dependencies import Photo
 from ..nonebot_utils import send_forward_msg
@@ -25,11 +27,12 @@ async def query_handler(
     bot: Bot, event: MessageEvent, matcher: Matcher, photo: Photo, jm: JmServiceDep
 ):
     """处理查询请求（群聊和私聊都触发）"""
-    message = Message()
-    message += jm.format_photo_info(photo)
+    album: JmAlbumDetail | None = None
+    if not photo.is_single_album:
+        album = await jm.get_album_from_photo(photo)
 
-    # 获取头像
-    from ...infra.jm_service import AvatarDownloadError
+    message = Message()
+    message += jm.format_photo_info(photo, album)
 
     try:
         avatar_bytes = await jm.download_avatar(photo.id)
