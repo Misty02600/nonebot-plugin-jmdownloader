@@ -54,6 +54,15 @@ class TestOutputFormatValidation:
         with pytest.raises(ValueError, match="不支持的输出格式"):
             JMService(config, logger=cast(Any, object()))
 
+    def test_create_jm_option_preserves_album_filename_rule_as_string(self):
+        config = JMOptionContext(cache_dir="cache")
+
+        option = jm_service_module.create_jm_option(config, mode="album")
+
+        plugin = option.plugins.after_album[0]
+        assert plugin.kwargs.filename_rule == "{Aoutput_name}"
+        assert isinstance(plugin.kwargs.filename_rule, str)
+
 
 class TestDownloadPhoto:
     @pytest.mark.asyncio
@@ -64,7 +73,9 @@ class TestDownloadPhoto:
         logger = DummyLogger()
 
         monkeypatch.setattr(
-            jm_service_module, "create_jm_option", lambda _config: option
+            jm_service_module,
+            "create_jm_option",
+            lambda _config, mode="photo": option,
         )
 
         service = JMService(
@@ -75,3 +86,27 @@ class TestDownloadPhoto:
         with pytest.raises(OSError, match="network down"):
             await service.download_photo(cast(Any, photo))
         assert logger.exceptions == []
+
+
+class TestPrepareAlbumFile:
+    @pytest.mark.asyncio
+    async def test_prepare_album_file_uses_selection_specific_output_name(
+        self, tmp_path, monkeypatch: pytest.MonkeyPatch
+    ):
+        service = JMService(
+            JMOptionContext(cache_dir=str(tmp_path)),
+            logger=cast(Any, object()),
+        )
+        album = type("Album", (), {"id": "123"})()
+
+        async def fake_download(received_album, episodes=None):
+            output = tmp_path / (
+                f"{service.get_album_output_name(received_album, episodes)}.pdf"
+            )
+            output.write_bytes(b"pdf")
+
+        monkeypatch.setattr(service, "download_album", fake_download)
+
+        result = await service.prepare_album_file(cast(Any, album), [0, 1, 2])
+
+        assert result == (str(tmp_path / "album_123_ep_1-3.pdf"), ".pdf")
