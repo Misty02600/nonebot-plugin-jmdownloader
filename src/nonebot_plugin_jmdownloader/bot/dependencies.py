@@ -9,7 +9,7 @@
 import asyncio
 from typing import Annotated
 
-from jmcomic import JmPhotoDetail, MissingAlbumPhotoException
+from jmcomic import JmAlbumDetail, JmPhotoDetail, MissingAlbumPhotoException
 from nonebot import get_driver, get_plugin_config, logger, require
 from nonebot.adapters.onebot.v11 import Message
 from nonebot.matcher import Matcher
@@ -175,5 +175,82 @@ async def get_photo(
 
 
 Photo = Annotated[JmPhotoDetail, Depends(get_photo)]
+
+# endregion
+
+# region Album
+
+
+def parse_episode_selection(text: str, total: int) -> list[int]:
+    """解析章节选择字符串，返回从0开始的索引列表。
+
+    支持格式：
+    - "1-5" → [0,1,2,3,4]
+    - "1,3,5" → [0,2,4]
+    - "1-3,5,7" → [0,1,2,4,6]
+
+    Raises:
+        ValueError: 格式无效或章节号越界
+    """
+    indices: set[int] = set()
+    for part in text.split(","):
+        part = part.strip()
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            if not start_s.isdigit() or not end_s.isdigit():
+                raise ValueError(f"无效的范围格式: {part}")
+            start, end = int(start_s), int(end_s)
+            if start < 1 or end > total or start > end:
+                raise ValueError(f"章节范围 {start}-{end} 超出范围(共{total}话)")
+            indices.update(range(start - 1, end))
+        elif part.isdigit():
+            num = int(part)
+            if num < 1 or num > total:
+                raise ValueError(f"章节 {num} 超出范围(共{total}话)")
+            indices.add(num - 1)
+        else:
+            raise ValueError(f"无效的章节格式: {part}")
+    return sorted(indices)
+
+
+async def get_album_with_selection(
+    arg: ArgText, matcher: Matcher, jm: JmServiceDep
+) -> tuple[JmAlbumDetail, list[int] | None]:
+    """从命令参数获取 Album 和可选的章节选择。
+
+    参数格式：
+    - "123456" → 全部章节
+    - "123456 1-5" → 第1到第5话
+    - "123456 1,3,5" → 第1、3、5话
+    """
+    parts = arg.split(maxsplit=1)
+    if not parts:
+        await matcher.finish("请输入有效的jm号")
+
+    album_id = parts[0]
+    if not album_id.isdigit():
+        await matcher.finish("请输入有效的jm号")
+
+    try:
+        album = await jm.get_album(album_id)
+    except MissingAlbumPhotoException:
+        await matcher.finish("未查找到本子集")
+    except Exception:
+        logger.warning(f"获取本子集信息失败: album_id={album_id}", exc_info=True)
+        await matcher.finish("查询时发生错误")
+
+    episodes: list[int] | None = None
+    if len(parts) > 1:
+        try:
+            episodes = parse_episode_selection(parts[1], len(album.episode_list))
+        except ValueError as e:
+            await matcher.finish(str(e))
+
+    return album, episodes
+
+
+AlbumWithSelection = Annotated[
+    tuple[JmAlbumDetail, list[int] | None], Depends(get_album_with_selection)
+]
 
 # endregion

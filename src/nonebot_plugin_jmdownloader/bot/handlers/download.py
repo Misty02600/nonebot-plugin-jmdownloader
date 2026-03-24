@@ -1,9 +1,9 @@
 """下载命令处理
 
-jm下载 命令，群聊和私聊统一处理。
+jm下载 和 jm本子集 命令，群聊和私聊统一处理。
 """
 
-from jmcomic import JmPhotoDetail
+from jmcomic import JmAlbumDetail, JmPhotoDetail
 from nonebot import logger, on_command
 from nonebot.adapters.onebot.v11 import (
     ActionFailed,
@@ -19,7 +19,7 @@ from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
 
 from .. import DataManagerDep, JmServiceDep
-from ..dependencies import Photo, plugin_config
+from ..dependencies import AlbumWithSelection, Photo, plugin_config
 from .common import group_enabled_check, private_enabled_check
 
 # region 前置检查 handler
@@ -57,6 +57,25 @@ def build_progress_message(
     if remaining_limit is not None:
         return f"你本周还有 {remaining_limit} 次下载次数，开始下载...\n{info}"
     return f"开始下载...\n{info}"
+
+
+def build_album_progress_message(
+    album: JmAlbumDetail,
+    episodes: list[int] | None,
+    remaining_limit: int | None,
+    jm: JmServiceDep,
+) -> str:
+    """构建本子集进度消息"""
+    info = jm.format_album_info(album)
+    if episodes is not None:
+        ep_display = ", ".join(str(i + 1) for i in episodes)
+        info += f"\n📖 选择章节: 第{ep_display}话"
+    prefix = (
+        f"你本周还有 {remaining_limit} 次下载次数，开始下载..."
+        if remaining_limit is not None
+        else "开始下载..."
+    )
+    return f"{prefix}\n{info}"
 
 
 # endregion
@@ -126,6 +145,54 @@ async def photo_restriction_check(
     else:
         # 只阻止，不惩罚（特权用户 或 配置关闭惩罚）
         await matcher.finish("该本子（或其tag）被禁止下载！")
+
+
+async def album_enabled_check(matcher: Matcher):
+    """本子集下载功能开关检查"""
+    if not plugin_config.jmcomic_allow_album_download:
+        await matcher.finish("本子集下载功能未启用")
+
+
+async def album_restriction_check(
+    bot: Bot,
+    event: GroupMessageEvent,
+    matcher: Matcher,
+    selection: AlbumWithSelection,
+    dm: DataManagerDep,
+):
+    """检查本子集内容限制，违规则根据配置惩罚（仅群聊触发）"""
+    album, _ = selection
+    album_tags = list(album.tags) if album.tags else []
+    if not dm.restriction.is_photo_restricted(album.id, album_tags):
+        return
+
+    should_punish = plugin_config.jmcomic_punish_on_violation
+
+    if should_punish:
+        is_privileged = await SUPERUSER(bot, event) or await (
+            GROUP_ADMIN | GROUP_OWNER
+        )(bot, event)
+        if is_privileged:
+            should_punish = False
+
+    if should_punish:
+        user_id = str(event.user_id)
+        group_id = event.group_id
+        group = dm.get_group(group_id)
+        try:
+            await bot.set_group_ban(
+                group_id=event.group_id, user_id=event.user_id, duration=86400
+            )
+        except ActionFailed:
+            pass
+        group.blacklist.add(user_id)
+        dm.save_group(group_id)
+        await matcher.finish(
+            MessageSegment.at(event.user_id)
+            + "该本子集（或其tag）被禁止下载！\n你已被加入本群jm黑名单"
+        )
+    else:
+        await matcher.finish("该本子集（或其tag）被禁止下载！")
 
 
 async def send_progress_message(
@@ -216,6 +283,93 @@ async def private_download_and_upload(
         await matcher.finish("发送文件失败")
 
 
+async def send_album_progress_message(
+    bot: Bot,
+    event: MessageEvent,
+    matcher: Matcher,
+    selection: AlbumWithSelection,
+    dm: DataManagerDep,
+    jm: JmServiceDep,
+):
+    """发送本子集进度消息（不扣额度，群聊和私聊都触发）"""
+    album, episodes = selection
+    is_su = await SUPERUSER(bot, event)
+
+    remaining: int | None = None
+    if not is_su:
+        remaining = dm.users.get_limit(event.user_id, dm.default_user_limit)
+
+    try:
+        await matcher.send(build_album_progress_message(album, episodes, remaining, jm))
+    except ActionFailed:
+        await matcher.send("本子集信息可能被屏蔽，已开始下载")
+    except NetworkError as e:
+        logger.warning(f"{e},可能是协议端发送文件时间太长导致的报错")
+
+
+async def group_album_download_and_upload(
+    bot: Bot,
+    event: GroupMessageEvent,
+    matcher: Matcher,
+    selection: AlbumWithSelection,
+    dm: DataManagerDep,
+    jm: JmServiceDep,
+):
+    """下载本子集并上传群文件（仅群聊触发）"""
+    album, episodes = selection
+    output_name = jm.get_album_output_name(album, episodes)
+    try:
+        result = await jm.prepare_album_file(album, episodes)
+    except Exception:
+        logger.warning(f"下载本子集失败: album_id={album.id}", exc_info=True)
+        await matcher.finish("下载失败")
+    if result is None:
+        await matcher.finish("下载失败")
+
+    file_path, ext = result
+
+    group_config = dm.get_group(event.group_id)
+    try:
+        params = {
+            "group_id": event.group_id,
+            "file": file_path,
+            "name": f"{output_name}{ext}",
+        }
+        if group_config.folder_id:
+            params["folder_id"] = group_config.folder_id
+        await bot.call_api("upload_group_file", **params)
+    except ActionFailed:
+        await matcher.send("发送文件失败")
+
+
+async def private_album_download_and_upload(
+    bot: Bot,
+    event: PrivateMessageEvent,
+    matcher: Matcher,
+    selection: AlbumWithSelection,
+    jm: JmServiceDep,
+):
+    """下载本子集并上传私聊文件（仅私聊触发）"""
+    album, episodes = selection
+    output_name = jm.get_album_output_name(album, episodes)
+    result = await jm.prepare_album_file(album, episodes)
+
+    if result is None:
+        await matcher.finish("下载失败")
+
+    file_path, ext = result
+
+    try:
+        await bot.call_api(
+            "upload_private_file",
+            user_id=event.user_id,
+            file=file_path,
+            name=f"{output_name}{ext}",
+        )
+    except ActionFailed:
+        await matcher.finish("发送文件失败")
+
+
 async def deduct_limit(
     bot: Bot,
     event: MessageEvent,
@@ -247,6 +401,24 @@ jm_download = on_command(
         group_download_and_upload,  # 8. 下载 + 上传群文件（仅群聊）
         private_download_and_upload,  # 9. 下载 + 上传私聊文件（仅私聊）
         deduct_limit,  # 10. 扣减额度（下载成功后静默扣减）
+    ],
+)
+
+jm_album_download = on_command(
+    "jm下载集",
+    aliases={"JM下载集"},
+    block=True,
+    handlers=[
+        album_enabled_check,
+        private_enabled_check,
+        group_enabled_check,
+        user_blacklist_check,
+        download_limit_check,
+        album_restriction_check,
+        send_album_progress_message,
+        group_album_download_and_upload,
+        private_album_download_and_upload,
+        deduct_limit,
     ],
 )
 

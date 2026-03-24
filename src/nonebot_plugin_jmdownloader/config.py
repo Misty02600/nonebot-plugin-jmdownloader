@@ -44,6 +44,9 @@ class PluginConfig(BaseModel):
         default=True,
         description="当用户下载违规内容时是否惩罚（禁言+拉黑），超管/管理员/群主始终免惩罚",
     )
+    jmcomic_allow_album_download: bool = Field(
+        default=False, description="是否允许使用本子集下载功能"
+    )
 
     # 服务层
     jmcomic_results_per_page: int = Field(

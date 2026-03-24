@@ -107,7 +107,11 @@ async def test_jm_service_uses_internal_option_for_download(
             return None
 
     monkeypatch.setattr(jm_service_module, "JmDownloader", FakeDownloader)
-    monkeypatch.setattr(jm_service_module, "create_jm_option", lambda _config: option)
+    monkeypatch.setattr(
+        jm_service_module,
+        "create_jm_option",
+        lambda _config, mode="photo": option,
+    )
 
     config = jm_service_module.JMOptionContext(cache_dir="cache")
     service = jm_service_module.JMService(config, logger=cast(Any, logger))

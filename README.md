@@ -114,6 +114,7 @@ plugins = ["nonebot_plugin_jmdownloader"]
 |   jmcomic_modify_real_md5   |  否   |   False   | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
 |  jmcomic_results_per_page   |  否   |    20     |          每页显示的搜索结果数量          |
 |   jmcomic_max_page_count    |  否   |    150    |     单次下载最大页数限制，0表示不限制     |
+| jmcomic_allow_album_download|  否   |   False   |        是否允许使用本子集(多章节)下载功能           |
 | jmcomic_punish_on_violation |  否   |   True    | 群员下载违规内容时是否惩罚（禁言+拉黑）  |
 
 **群列表模式说明：**
@@ -151,6 +152,8 @@ JMCOMIC_MODIFY_REAL_MD5=False
 JMCOMIC_RESULTS_PER_PAGE=20
 # 单次下载最大页数限制，0表示不限制（防止下载过大的本子）
 JMCOMIC_MAX_PAGE_COUNT=200
+# 是否允许使用本子集（多章节）下载功能（默认关闭，本子集下载不受页数限制，消耗1次下载额度）
+JMCOMIC_ALLOW_ALBUM_DOWNLOAD=False
 # 群员下载违规内容时是否惩罚（禁言+拉黑）
 JMCOMIC_PUNISH_ON_VIOLATION=True
 ```
@@ -170,6 +173,7 @@ JMCOMIC_PUNISH_ON_VIOLATION=True
 |          指令           |   权限   | 需要@ |   范围    |                         说明                         |
 | :---------------------: | :------: | :---: | :-------: | :--------------------------------------------------: |
 |       jm下载 [id]       |   群员   |  否   | 群聊/私聊 |        下载指定的 JMComic 本子到群文件或私聊         |
+|    jm下载集 [id] [章节]  |   群员   |  否   | 群聊/私聊 |  下载本子集，可选章节如 1-5 或 1,3,5  |
 |       jm查询 [id]       |   群员   |  否   | 群聊/私聊 |             查询指定的 JMComic 本子信息              |
 |     jm搜索 [关键词]     |   群员   |  否   | 群聊/私聊 |          搜索 JMComic 网站的漫画并返回列表           |
 |        jm下一页         |   群员   |  否   | 群聊/私聊 |                 显示搜索结果的下一页                 |
@@ -189,6 +193,7 @@ JMCOMIC_PUNISH_ON_VIOLATION=True
 - 被屏蔽的本子会在搜索结果中隐藏，下载被屏蔽的本子会被阻止下载。
 - 普通用户下载违规内容时，默认会被禁言24小时并加入本群黑名单（可通过 `JMCOMIC_PUNISH_ON_VIOLATION` 配置关闭）。
 - **超管、群管理员、群主下载违规内容时只会被阻止，不会被惩罚。**
+- **本子集下载**默认关闭，需配置 `JMCOMIC_ALLOW_ALBUM_DOWNLOAD=True` 启用。本子集下载不受页数限制，每次下载消耗 1 次额度。
 - **命令需要添加 COMMAND_START 前缀**
 
 ### 🎨 效果图
