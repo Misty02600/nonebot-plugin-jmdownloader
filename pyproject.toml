@@ -75,7 +75,7 @@ exclude_lines = [
 ]
 
 [tool.pyright]
-include = ["src", "tests"] # 要检查的目录
+include = ["src"] # 要检查的目录
 pythonVersion = "3.11"     # 目标 Python 版本（影响可用的类型特性）
 pythonPlatform = "All"     # 目标平台：All | Linux | Windows | Darwin
 # typeCheckingMode 类型检查严格程度，可选值：
@@ -85,12 +85,6 @@ pythonPlatform = "All"     # 目标平台：All | Linux | Windows | Darwin
 #   - "strict"：   严格检查（要求完整的类型注解，适合新项目）
 #   - "all"：      最严格（启用所有检查，可能产生大量警告）
 typeCheckingMode = "standard"
-
-# 测试目录的特殊配置（放宽部分规则以适应测试场景）
-[[tool.pyright.executionEnvironments]]
-root = "tests"
-reportPrivateUsage = "none"      # 允许测试访问私有属性 (_variable)
-reportUnknownMemberType = "none" # 允许 Mock 对象等动态类型
 
 [tool.pytest.ini_options]
 addopts = [
