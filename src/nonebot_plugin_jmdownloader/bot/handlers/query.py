@@ -14,6 +14,7 @@ from nonebot.adapters.onebot.v11 import (
 )
 from nonebot.matcher import Matcher
 
+from ...infra import blur_image_async
 from ...infra.jm_service import AvatarDownloadError
 from .. import JmServiceDep
 from ..dependencies import Photo
@@ -36,6 +37,7 @@ async def query_handler(
 
     try:
         avatar_bytes = await jm.download_avatar(photo.id)
+        avatar_bytes = await blur_image_async(avatar_bytes)
         message += MessageSegment.image(avatar_bytes)
     except AvatarDownloadError:
         pass
