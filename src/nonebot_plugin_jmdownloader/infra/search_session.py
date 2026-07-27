@@ -15,7 +15,7 @@ class SessionCache:
     """
 
     def __init__(self, default_page_size: int = 20, ttl: float = 1800):
-        self._cache: TTLCache[str, SearchSession] = TTLCache(
+        self._cache: TTLCache[str, SearchSession] = TTLCache[str, SearchSession](
             maxsize=float("inf"), ttl=ttl
         )
         self.default_page_size = default_page_size
