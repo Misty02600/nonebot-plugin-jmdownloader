@@ -234,6 +234,7 @@ config/
 junit.xml
 
 # AI
+docs/
 instructions/
 AGENT.md
 .agent/rules/
