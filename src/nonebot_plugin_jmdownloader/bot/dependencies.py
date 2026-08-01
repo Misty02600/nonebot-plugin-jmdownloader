@@ -17,10 +17,8 @@ from nonebot.params import CommandArg, Depends
 
 from ..config import PluginConfig
 from ..infra.data_manager import DataManager
-from ..infra.jm_service import (
-    JMOptionContext,
-    JMService,
-)
+from ..infra.jm_option import JMOptionContext
+from ..infra.jm_service import JMService
 from ..infra.search_session import SessionCache
 
 # 确保依赖插件已加载
@@ -70,6 +68,7 @@ _jm_option_config = JMOptionContext(
     cache_dir=_cache_dir,
     output_format=plugin_config.jmcomic_output_format,
     zip_password=plugin_config.jmcomic_zip_password,
+    pdf_password=plugin_config.jmcomic_pdf_password,
     log=plugin_config.jmcomic_log,
     proxies=plugin_config.jmcomic_proxies,
     thread_count=plugin_config.jmcomic_thread_count,
