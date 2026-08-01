@@ -98,4 +98,4 @@ data_dir/
 - 多进程部署没有分布式锁或共享会话，当前设计面向单进程插件实例；
 - `aiorwlock` 和输出路径锁都只在一个事件循环进程内生效；多进程共享缓存不在当前支持范围内。
 
-缓存协调决定见 [ADR-0002](../adr/0002-coordinate-cache-with-runtime-locks.md)。当前输出密码改动及其审查修复仍未提交，见 [PLAN-0001](../plans/todo/plan-0001-output-passwords.md)。
+缓存协调决定见 [ADR-0002](../adr/0002-coordinate-cache-with-runtime-locks.md)。输出密码功能的最终范围、验证和后续事项见 [PLAN-0001](../plans/done/plan-0001-output-passwords.md)。

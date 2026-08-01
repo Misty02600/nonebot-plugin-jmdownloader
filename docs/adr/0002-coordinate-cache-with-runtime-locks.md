@@ -62,4 +62,4 @@ AnyIO 的线程接口可以处理 AnyIO 取消作用域，但不能等价拦截�
 - [架构总览](../architecture/overview.md)
 - [缓存使用与清理流程](../architecture/flows/cache-lifecycle.md)
 - [输出准备与密码流程](../architecture/flows/output-preparation.md)
-- [PLAN-0001](../plans/todo/plan-0001-output-passwords.md)
+- [PLAN-0001](../plans/done/plan-0001-output-passwords.md)

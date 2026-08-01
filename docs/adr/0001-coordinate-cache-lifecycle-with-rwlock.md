@@ -57,7 +57,7 @@
 
 - [架构总览](../architecture/overview.md)
 - [JMService 文件导读](../architecture/files/infra-jm-service.md)
-- [PLAN-0001](../plans/todo/plan-0001-output-passwords.md)
+- [PLAN-0001](../plans/done/plan-0001-output-passwords.md)
 
 ## 替代关系
 
