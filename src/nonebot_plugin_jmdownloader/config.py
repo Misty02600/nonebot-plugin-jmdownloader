@@ -21,7 +21,12 @@ class PluginConfig(BaseModel):
         description="输出格式：pdf 或 zip",
     )
     jmcomic_zip_password: str | None = Field(
-        default=None, description="ZIP 压缩包密码（仅 ZIP 格式有效，需安装 pyzipper）"
+        default=None,
+        description="ZIP 压缩包密码模板（未配置时不加密，{id} 表示当前本子 ID）",
+    )
+    jmcomic_pdf_password: str | None = Field(
+        default=None,
+        description="PDF 密码模板（未配置时不加密，{id} 表示当前本子 ID）",
     )
     jmcomic_modify_real_md5: bool = Field(
         default=False, description="是否修改PDF的MD5值（仅PDF格式有效）"
@@ -62,6 +67,13 @@ class PluginConfig(BaseModel):
         if v is not None:
             return str(v)
         return v
+
+    @field_validator("jmcomic_zip_password", "jmcomic_pdf_password", mode="before")
+    @classmethod
+    def normalize_output_password(cls, value: object) -> str | None:
+        if value is None or value == "":
+            return None
+        return str(value)
 
     @model_validator(mode="after")
     def resolve_group_mode(self) -> Self:

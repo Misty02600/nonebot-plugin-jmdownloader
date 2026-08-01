@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, ClassVar, cast
 
 import pytest
@@ -29,17 +30,35 @@ class FakeService:
         return True
 
 
+class DummyPlugins(dict):
+    @property
+    def src_dict(self):
+        return self
+
+
 class DummyOption:
     def __init__(self, fail_times: int = 0):
         self.fail_times = fail_times
         self.build_calls = 0
         self.client = object()
+        self.dir_rule = type("DirRule", (), {"base_dir": "cache"})()
+        self.plugins = DummyPlugins(
+            {
+                "after_photo": [{"plugin": "img2pdf", "kwargs": {}}],
+                "after_album": [{"plugin": "img2pdf", "kwargs": {}}],
+            }
+        )
 
     def build_jm_client(self):
         self.build_calls += 1
         if self.build_calls <= self.fail_times:
             raise OSError("network down")
         return self.client
+
+    def copy_option(self):
+        copied = DummyOption(self.fail_times)
+        copied.plugins = DummyPlugins(deepcopy(self.plugins))
+        return copied
 
 
 @pytest.fixture
@@ -79,6 +98,19 @@ def test_get_jm_service_returns_shared_service_without_warmup(
 
     assert dependencies.get_jm_service() is service
     assert service.warmup_calls == 0
+
+
+def test_output_password_config_is_passed_to_jm_option_context(dependencies_module):
+    dependencies = dependencies_module
+
+    assert (
+        dependencies._jm_option_config.zip_password
+        == dependencies.plugin_config.jmcomic_zip_password
+    )
+    assert (
+        dependencies._jm_option_config.pdf_password
+        == dependencies.plugin_config.jmcomic_pdf_password
+    )
 
 
 @pytest.mark.asyncio

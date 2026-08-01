@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-from dataclasses import dataclass
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from copy import copy
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -18,12 +20,18 @@ from jmcomic import (
     JmcomicClient,
     JmDownloader,
     JmModuleConfig,
-    JmOption,
     JmPhotoDetail,
-    create_option_by_str,
 )
 
 from ..core.enums import OutputFormat
+from .jm_option import (
+    DownloadMode,
+    JMOptionContext,
+    copy_option_with_password,
+    create_jm_option,
+)
+from .output_cache import OutputCache
+from .output_password import resolve_output_password, validate_output_file
 from .pdf_utils import prepare_pdf_with_unique_md5
 
 if TYPE_CHECKING:
@@ -73,113 +81,6 @@ def build_album_output_name(
     return f"{base_name}_{_format_episode_selection_for_filename(episodes)}"
 
 
-# region 工厂函数
-
-
-@dataclass
-class JMOptionContext:
-    """用于构造 jmcomic option 的配置。"""
-
-    cache_dir: str
-    output_format: OutputFormat = OutputFormat.PDF
-    zip_password: str | None = None
-    log: bool = False
-    proxies: str = "system"
-    thread_count: int = 10
-    username: str | None = None
-    password: str | None = None
-    modify_md5: bool = False
-
-
-def _build_plugin_block(config: JMOptionContext, mode: str, quote) -> str:
-    """根据输出格式和模式构建插件配置块。
-
-    mode="photo": after_photo 触发，用于单章节下载
-    mode="album": after_album 触发，用于本子集下载
-    """
-    hook = "after_photo" if mode == "photo" else "after_album"
-    filename_rule = "Pid" if mode == "photo" else "{Aoutput_name}"
-
-    match config.output_format:
-        case OutputFormat.PDF:
-            return f"""  {hook}:
-    - plugin: img2pdf
-      kwargs:
-        pdf_dir: {quote(config.cache_dir)}
-        filename_rule: {quote(filename_rule)}
-"""
-        case OutputFormat.ZIP:
-            level = "photo" if mode == "photo" else "album"
-            encrypt_block = ""
-            if config.zip_password:
-                encrypt_block = f"""
-        encrypt:
-          password: {quote(config.zip_password)}"""
-            return f"""  {hook}:
-    - plugin: zip
-      kwargs:
-        zip_dir: {quote(config.cache_dir)}
-        filename_rule: {quote(filename_rule)}
-        level: {level}
-        suffix: zip
-        delete_original_file: true{encrypt_block}
-"""
-        case _:
-            raise ValueError(f"不支持的输出格式: {config.output_format!r}")
-
-
-def create_jm_option(config: JMOptionContext, mode: str = "photo") -> JmOption:
-    """根据配置构造一个新的 JmOption 实例。
-
-    mode="photo": 单章节下载（after_photo 插件）
-    mode="album": 本子集下载（after_album 插件）
-    """
-
-    def quote(value: str) -> str:
-        """安全地引用 YAML 字符串值"""
-        escaped = value.replace("'", "''")
-        return f"'{escaped}'"
-
-    login_block = ""
-    if config.username and config.password:
-        login_block = f"""  after_init:
-    - plugin: login
-      kwargs:
-        username: {quote(config.username)}
-        password: {quote(config.password)}
-"""
-
-    plugin_block = _build_plugin_block(config, mode, quote)
-
-    yaml_config = f"""\
-log: {config.log}
-
-client:
-  impl: api
-  retry_times: 1
-  postman:
-    meta_data:
-      proxies: {quote(config.proxies)}
-
-download:
-  image:
-    suffix: .jpg
-  threading:
-    image: {config.thread_count}
-
-dir_rule:
-  base_dir: {quote(config.cache_dir)}
-  rule: Bd_Pid
-
-plugins:
-{login_block}{plugin_block}"""
-
-    return create_option_by_str(yaml_config, mode="yml")
-
-
-# endregion
-
-
 class JMService:
     """封装 JM 客户端操作，提供统一的异步接口。"""
 
@@ -188,6 +89,11 @@ class JMService:
         self._photo_option = create_jm_option(config, mode="photo")
         self._album_option = create_jm_option(config, mode="album")
         self._logger = logger
+        self._output_cache = OutputCache(
+            self._photo_option.dir_rule.base_dir,
+            config.output_format,
+            logger,
+        )
 
     async def warmup(self):
         """异步预热 JM 客户端（可选）。"""
@@ -206,7 +112,22 @@ class JMService:
 
     @property
     def output_dir(self) -> Path:
-        return Path(self._photo_option.dir_rule.base_dir)
+        return self._output_cache.output_dir
+
+    @asynccontextmanager
+    async def cache_usage(self) -> AsyncIterator[None]:
+        """持有缓存共享租约，保护准备产物到外部消费完成的完整区间。
+
+        Note:
+            当前 handler 在最外层获取一次，以便让租约范围清晰覆盖准备和上传。不要在
+            持有读锁时调用需要写锁的 `clear_cache()`，依赖会拒绝读锁升级。
+        """
+        async with self._output_cache.usage():
+            yield
+
+    async def clear_cache(self) -> None:
+        """等待缓存使用者退出后，在线程中独占重建缓存目录。"""
+        await self._output_cache.clear()
 
     def get_album_output_name(
         self, album: JmAlbumDetail, episodes: list[int] | None = None
@@ -234,11 +155,32 @@ class JMService:
         """从 Photo 获取所属 Album。"""
         return await self.get_album(photo.album_id)
 
+    def _resolve_password(self, content_id: str | int) -> str | None:
+        template = (
+            self._config.pdf_password
+            if self._config.output_format == OutputFormat.PDF
+            else self._config.zip_password
+        )
+        return resolve_output_password(template, content_id)
+
+    def _create_request_downloader(
+        self, mode: DownloadMode, password: str | None
+    ) -> JmDownloader:
+        base_option = self._photo_option if mode == "photo" else self._album_option
+        request_option = copy_option_with_password(
+            base_option, mode, self._config.output_format, password
+        )
+        downloader = JmDownloader(base_option)
+        downloader.option = request_option
+        return downloader
+
     async def download_photo(self, photo: JmPhotoDetail) -> None:
         """异步下载本子。"""
 
+        password = self._resolve_password(photo.id)
+
         def _sync() -> None:
-            downloader = JmDownloader(self._photo_option)
+            downloader = self._create_request_downloader("photo", password)
             with downloader as dler:
                 dler.download_by_photo_detail(photo)
 
@@ -251,14 +193,18 @@ class JMService:
 
         episodes: 从0开始的章节索引列表，None 表示全部。
         """
-        cast(Any, album).output_name = self.get_album_output_name(album, episodes)
+        password = self._resolve_password(album.id)
+        album_for_download = copy(album)
+        cast(Any, album_for_download).output_name = self.get_album_output_name(
+            album, episodes
+        )
         if episodes is not None:
-            album.episode_list = [album.episode_list[i] for i in episodes]
+            album_for_download.episode_list = [album.episode_list[i] for i in episodes]
 
         def _sync() -> None:
-            downloader = JmDownloader(self._album_option)
+            downloader = self._create_request_downloader("album", password)
             with downloader as dler:
-                dler.download_by_album_detail(album)
+                dler.download_by_album_detail(album_for_download)
 
         await asyncio.to_thread(_sync)
 
@@ -267,20 +213,29 @@ class JMService:
         fmt = self._config.output_format
         ext = fmt.ext
         file_path = self.output_dir / f"{photo.id}{ext}"
+        password = self._resolve_password(photo.id)
 
-        if not file_path.exists():
-            await self.download_photo(photo)
-            if not file_path.exists():
-                self._logger.error(
-                    f"下载后输出文件不存在: {file_path}，可能是 {fmt} 插件执行失败"
-                )
-                return None
+        ready = await self._output_cache.prepare(
+            file_path,
+            photo.id,
+            password,
+            lambda: self.download_photo(photo),
+        )
+        if not ready:
+            return None
 
         if fmt == OutputFormat.PDF and self._config.modify_md5:
             modified_path = await prepare_pdf_with_unique_md5(
                 str(file_path), str(self.output_dir), str(photo.id)
             )
             if modified_path is None:
+                return None
+            is_valid = await asyncio.to_thread(
+                validate_output_file, modified_path, fmt, password
+            )
+            if not is_valid:
+                await asyncio.to_thread(Path(modified_path).unlink, missing_ok=True)
+                self._logger.error(f"修改 MD5 后 PDF 密码状态验证失败: {modified_path}")
                 return None
             return (modified_path, ext)
 
@@ -297,20 +252,29 @@ class JMService:
         ext = fmt.ext
         output_name = self.get_album_output_name(album, episodes)
         file_path = self.output_dir / f"{output_name}{ext}"
+        password = self._resolve_password(album.id)
 
-        if not file_path.exists():
-            await self.download_album(album, episodes)
-            if not file_path.exists():
-                self._logger.error(
-                    f"下载后输出文件不存在: {file_path}，可能是 {fmt} 插件执行失败"
-                )
-                return None
+        ready = await self._output_cache.prepare(
+            file_path,
+            album.id,
+            password,
+            lambda: self.download_album(album, episodes),
+        )
+        if not ready:
+            return None
 
         if fmt == OutputFormat.PDF and self._config.modify_md5:
             modified_path = await prepare_pdf_with_unique_md5(
                 str(file_path), str(self.output_dir), output_name
             )
             if modified_path is None:
+                return None
+            is_valid = await asyncio.to_thread(
+                validate_output_file, modified_path, fmt, password
+            )
+            if not is_valid:
+                await asyncio.to_thread(Path(modified_path).unlink, missing_ok=True)
+                self._logger.error(f"修改 MD5 后 PDF 密码状态验证失败: {modified_path}")
                 return None
             return (modified_path, ext)
 

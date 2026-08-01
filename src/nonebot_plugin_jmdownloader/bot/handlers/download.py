@@ -229,30 +229,31 @@ async def group_download_and_upload(
     jm: JmServiceDep,
 ):
     """下载文件并上传群文件（仅群聊触发）"""
-    # 下载
-    try:
-        result = await jm.prepare_photo_file(photo)
-    except Exception:
-        logger.warning(f"下载本子失败: photo_id={photo.id}", exc_info=True)
-        await matcher.finish("下载失败")
-    if result is None:
-        await matcher.finish("下载失败")
+    async with jm.cache_usage():
+        # 下载
+        try:
+            result = await jm.prepare_photo_file(photo)
+        except Exception:
+            logger.warning(f"下载本子失败: photo_id={photo.id}", exc_info=True)
+            await matcher.finish("下载失败")
+        if result is None:
+            await matcher.finish("下载失败")
 
-    file_path, ext = result
+        file_path, ext = result
 
-    # 上传
-    group_config = dm.get_group(event.group_id)
-    try:
-        params = {
-            "group_id": event.group_id,
-            "file": file_path,
-            "name": f"{photo.id}{ext}",
-        }
-        if group_config.folder_id:
-            params["folder_id"] = group_config.folder_id
-        await bot.call_api("upload_group_file", **params)
-    except ActionFailed:
-        await matcher.send("发送文件失败")
+        # 上传
+        group_config = dm.get_group(event.group_id)
+        try:
+            params = {
+                "group_id": event.group_id,
+                "file": file_path,
+                "name": f"{photo.id}{ext}",
+            }
+            if group_config.folder_id:
+                params["folder_id"] = group_config.folder_id
+            await bot.call_api("upload_group_file", **params)
+        except ActionFailed:
+            await matcher.send("发送文件失败")
 
 
 async def private_download_and_upload(
@@ -263,24 +264,25 @@ async def private_download_and_upload(
     jm: JmServiceDep,
 ):
     """下载文件并上传私聊文件（仅私聊触发）"""
-    # 下载
-    result = await jm.prepare_photo_file(photo)
+    async with jm.cache_usage():
+        # 下载
+        result = await jm.prepare_photo_file(photo)
 
-    if result is None:
-        await matcher.finish("下载失败")
+        if result is None:
+            await matcher.finish("下载失败")
 
-    file_path, ext = result
+        file_path, ext = result
 
-    # 上传
-    try:
-        await bot.call_api(
-            "upload_private_file",
-            user_id=event.user_id,
-            file=file_path,
-            name=f"{photo.id}{ext}",
-        )
-    except ActionFailed:
-        await matcher.finish("发送文件失败")
+        # 上传
+        try:
+            await bot.call_api(
+                "upload_private_file",
+                user_id=event.user_id,
+                file=file_path,
+                name=f"{photo.id}{ext}",
+            )
+        except ActionFailed:
+            await matcher.finish("发送文件失败")
 
 
 async def send_album_progress_message(
@@ -318,28 +320,29 @@ async def group_album_download_and_upload(
     """下载本子集并上传群文件（仅群聊触发）"""
     album, episodes = selection
     output_name = jm.get_album_output_name(album, episodes)
-    try:
-        result = await jm.prepare_album_file(album, episodes)
-    except Exception:
-        logger.warning(f"下载本子集失败: album_id={album.id}", exc_info=True)
-        await matcher.finish("下载失败")
-    if result is None:
-        await matcher.finish("下载失败")
+    async with jm.cache_usage():
+        try:
+            result = await jm.prepare_album_file(album, episodes)
+        except Exception:
+            logger.warning(f"下载本子集失败: album_id={album.id}", exc_info=True)
+            await matcher.finish("下载失败")
+        if result is None:
+            await matcher.finish("下载失败")
 
-    file_path, ext = result
+        file_path, ext = result
 
-    group_config = dm.get_group(event.group_id)
-    try:
-        params = {
-            "group_id": event.group_id,
-            "file": file_path,
-            "name": f"{output_name}{ext}",
-        }
-        if group_config.folder_id:
-            params["folder_id"] = group_config.folder_id
-        await bot.call_api("upload_group_file", **params)
-    except ActionFailed:
-        await matcher.send("发送文件失败")
+        group_config = dm.get_group(event.group_id)
+        try:
+            params = {
+                "group_id": event.group_id,
+                "file": file_path,
+                "name": f"{output_name}{ext}",
+            }
+            if group_config.folder_id:
+                params["folder_id"] = group_config.folder_id
+            await bot.call_api("upload_group_file", **params)
+        except ActionFailed:
+            await matcher.send("发送文件失败")
 
 
 async def private_album_download_and_upload(
@@ -352,22 +355,23 @@ async def private_album_download_and_upload(
     """下载本子集并上传私聊文件（仅私聊触发）"""
     album, episodes = selection
     output_name = jm.get_album_output_name(album, episodes)
-    result = await jm.prepare_album_file(album, episodes)
+    async with jm.cache_usage():
+        result = await jm.prepare_album_file(album, episodes)
 
-    if result is None:
-        await matcher.finish("下载失败")
+        if result is None:
+            await matcher.finish("下载失败")
 
-    file_path, ext = result
+        file_path, ext = result
 
-    try:
-        await bot.call_api(
-            "upload_private_file",
-            user_id=event.user_id,
-            file=file_path,
-            name=f"{output_name}{ext}",
-        )
-    except ActionFailed:
-        await matcher.finish("发送文件失败")
+        try:
+            await bot.call_api(
+                "upload_private_file",
+                user_id=event.user_id,
+                file=file_path,
+                name=f"{output_name}{ext}",
+            )
+        except ActionFailed:
+            await matcher.finish("发送文件失败")
 
 
 async def deduct_limit(

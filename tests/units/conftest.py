@@ -40,9 +40,20 @@ import_module_directly("nonebot_plugin_jmdownloader.core.enums", "core/enums.py"
 import_module_directly(
     "nonebot_plugin_jmdownloader.core.data_models", "core/data_models.py"
 )
+import_module_directly("nonebot_plugin_jmdownloader.config", "config.py")
 # infra 模块依赖 core 模块，所以需要在 core 之后导入
 import_module_directly(
+    "nonebot_plugin_jmdownloader.infra.jm_option", "infra/jm_option.py"
+)
+import_module_directly(
     "nonebot_plugin_jmdownloader.infra.pdf_utils", "infra/pdf_utils.py"
+)
+import_module_directly(
+    "nonebot_plugin_jmdownloader.infra.output_password",
+    "infra/output_password.py",
+)
+import_module_directly(
+    "nonebot_plugin_jmdownloader.infra.output_cache", "infra/output_cache.py"
 )
 import_module_directly(
     "nonebot_plugin_jmdownloader.infra.search_session", "infra/search_session.py"

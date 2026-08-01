@@ -1,5 +1,6 @@
 """PDF 处理工具"""
 
+import asyncio
 import random
 import struct
 
@@ -47,8 +48,6 @@ def modify_pdf_md5(original_pdf_path: str, output_path: str) -> bool:
 
 async def modify_pdf_md5_async(original_pdf_path: str, output_path: str) -> bool:
     """异步版本的 modify_pdf_md5"""
-    import asyncio
-
     return await asyncio.to_thread(modify_pdf_md5, original_pdf_path, output_path)
 
 
