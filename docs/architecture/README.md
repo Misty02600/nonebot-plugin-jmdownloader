@@ -9,7 +9,7 @@
 - [缓存使用与清理流程](flows/cache-lifecycle.md)：下载、上传与定时清理之间的所有权边界。
 - [JMService 文件导读](files/infra-jm-service.md)：下载、输出缓存、密码注入和文件验证的核心实现入口。
 - [ADR-0002：用运行时锁协调缓存并采用标准线程调用](../adr/0002-coordinate-cache-with-runtime-locks.md)：当前缓存并发与线程边界的完整决定。
-- [当前计划：ZIP/PDF 输出密码](../plans/todo/plan-0001-output-passwords.md)：尚未提交的实施记录、验证结果和剩余审批事项。
+- [完成记录：ZIP/PDF 输出密码](../plans/done/plan-0001-output-passwords.md)：最终范围、验证结果和已知后续事项。
 
 ## 一句话架构
 
@@ -32,4 +32,4 @@
 | 目录分层、依赖组装、数据目录或定时任务 | [架构总览](overview.md) |
 | 输出格式、密码模板、缓存命中或验证 | [输出准备流程](flows/output-preparation.md) 与 [JMService 导读](files/infra-jm-service.md) |
 | 下载/上传租约、定时清理、读写锁或线程调用 | [缓存生命周期流程](flows/cache-lifecycle.md)、[ADR-0002](../adr/0002-coordinate-cache-with-runtime-locks.md) 与 [JMService 导读](files/infra-jm-service.md) |
-| 当前密码功能的范围、验证和交付状态 | [PLAN-0001](../plans/todo/plan-0001-output-passwords.md) |
+| 密码功能的最终范围、验证和交付状态 | [PLAN-0001](../plans/done/plan-0001-output-passwords.md) |
