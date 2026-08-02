@@ -110,8 +110,8 @@ plugins = ["nonebot_plugin_jmdownloader"]
 |    jmcomic_allow_private    |  否   |   True    |           是否允许私聊使用功能           |
 |     jmcomic_user_limits     |  否   |     5     |        每位用户的每周下载限制次数        |
 |    jmcomic_output_format    |  否   |    pdf    |           输出格式：pdf 或 zip           |
-|    jmcomic_zip_password     |  否   |    无     | ZIP 密码模板（仅 zip 格式有效）          |
-|    jmcomic_pdf_password     |  否   |    无     | PDF 密码模板（仅 pdf 格式有效）          |
+|    jmcomic_zip_password     |  否   |    无     | ZIP 密码模板，留空不设置密码，{id}会替换为jm号       |
+|    jmcomic_pdf_password     |  否   |    无     | PDF 密码模板，留空不设置密码，{id}会替换为jm号          |
 |   jmcomic_modify_real_md5   |  否   |   False   | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
 |  jmcomic_results_per_page   |  否   |    20     |          每页显示的搜索结果数量          |
 |   jmcomic_max_page_count    |  否   |    150    |     单次下载最大页数限制，0表示不限制     |
