@@ -204,17 +204,6 @@ JMCOMIC_PUNISH_ON_VIOLATION=True
 ![query](img/query.png)
 ![download](img/download.png)
 
-## ⚠️ 使用警告
-
-**仅作为交流学习使用！请严格遵守法律法规与公序良俗！**
-
-❌ 禁止将本插件用于任何非法用途
-
-❌ 禁止分享/传播未成年人相关或违法内容
-
-
-本插件仅限**个人合规使用**，用户行为责任自负，开发者不承担任何连带责任。
-
 ## 📃 许可证
 
 本项目采用 [MIT](./LICENSE) 许可证。
