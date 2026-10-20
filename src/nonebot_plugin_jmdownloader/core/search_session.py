@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 
 @dataclass
@@ -14,9 +15,10 @@ class SearchSession:
     Attributes:
         query: 搜索关键词
         results: 已获取的所有结果 ID
-        display_idx: 当前展示起始索引
+        display_idx: 下一条待展示结果的索引
         api_page: 当前 API 页码
         page_size: 每页显示数量
+        can_fetch_more: 是否允许继续取页，取尽、重复页或请求失败后停止
     """
 
     query: str
@@ -24,51 +26,45 @@ class SearchSession:
     display_idx: int = 0
     api_page: int = 1
     page_size: int = 20
+    can_fetch_more: bool = field(init=False)
 
     # JM API 每页返回的数量（固定值）
-    API_PAGE_SIZE: int = 80
+    API_PAGE_SIZE: ClassVar[int] = 80
+
+    def __post_init__(self) -> None:
+        self.can_fetch_more = len(self.results) >= self.API_PAGE_SIZE
 
     def get_current_page(self) -> list[str]:
         """获取当前页的结果 ID 列表"""
         end_idx = self.display_idx + self.page_size
         return self.results[self.display_idx : end_idx]
 
-    def has_next_page(self) -> bool:
-        """检查是否还有下一页（用户视角）"""
-        return self._has_more_results() or self._may_have_next_api_page()
-
-    def _has_more_results(self) -> bool:
-        """检查是否还有更多缓存结果可显示"""
-        return self.display_idx + self.page_size < len(self.results)
-
-    def _may_have_next_api_page(self) -> bool:
-        """检查是否可能还有下一个 API 页"""
-        return len(self.results) > 0 and len(self.results) % self.API_PAGE_SIZE == 0
+    def has_remaining_results(self) -> bool:
+        return self.display_idx < len(self.results) or self.can_fetch_more
 
     def needs_fetch_more(self) -> bool:
         """检查是否需要获取更多 API 数据"""
         next_end = self.display_idx + self.page_size * 2
-        return next_end > len(self.results) and self._may_have_next_api_page()
+        return next_end > len(self.results) and self.can_fetch_more
 
     def append_results(self, new_ids: list[str]) -> bool:
-        """追加新的搜索结果
+        """追加成功获取的 API 页，并更新是否允许继续取页。
 
         Args:
             new_ids: 新的结果 ID 列表
 
         Returns:
-            True 如果成功追加了新结果
+            有新 ID 时追加整页并返回 True；空页或整页 ID 均已缓存时
+            返回 False，并停止后续取页。不对部分重叠的结果去重。
         """
-        if not new_ids or (self.results and new_ids[-1] == self.results[-1]):
+        if not new_ids or set(new_ids).issubset(self.results):
+            self.can_fetch_more = False
             return False
         self.results.extend(new_ids)
         self.api_page += 1
+        self.can_fetch_more = len(new_ids) >= self.API_PAGE_SIZE
         return True
 
-    def advance_page(self) -> None:
-        """前进到下一页"""
-        self.display_idx += self.page_size
-
-    def is_last_page(self) -> bool:
-        """检查当前是否是最后一页"""
-        return not self.has_next_page()
+    def advance_page(self, result_count: int) -> None:
+        """发送成功后按本次取出的 ID 数量推进，包含详情获取失败的条目。"""
+        self.display_idx += result_count

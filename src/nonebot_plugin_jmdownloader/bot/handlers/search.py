@@ -89,43 +89,43 @@ async def search_handler(
     searching_msg_id = (await matcher.send("正在搜索中..."))["message_id"]
 
     try:
-        page = await jm.search(query)
-    except Exception:
-        logger.warning(f"搜索失败: query={query}", exc_info=True)
+        try:
+            page = await jm.search(query)
+        except Exception:
+            logger.warning(f"搜索失败: query={query}", exc_info=True)
+            await matcher.finish("搜索失败", reply_message=True)
+
+        session = sessions.create(
+            user_id=event.user_id,
+            query=query,
+            results=list(page.iter_id()),
+        )
+
+        if not session.results:
+            sessions.remove(event.user_id)
+            await matcher.finish("未搜索到本子", reply_message=True)
+
+        current_results = session.get_current_page()
+        blocked_message = f"{nickname}吃掉了一个不豪吃的本子"
+        messages = await build_search_result_messages(
+            bot, current_results, dm, jm, blocked_message
+        )
+
+        try:
+            await send_forward_msg(bot, event, messages)
+        except ActionFailed:
+            sessions.remove(event.user_id)
+            await matcher.finish("搜索结果发送失败", reply_message=True)
+
+        session.advance_page(len(current_results))
+        if session.has_remaining_results():
+            sessions.set(event.user_id, session)
+            await matcher.send("搜索有更多结果，使用'jm下一页'指令查看更多")
+        else:
+            sessions.remove(event.user_id)
+            await matcher.send("已发送所有搜索结果")
+    finally:
         await bot.delete_msg(message_id=searching_msg_id)
-        await matcher.finish("搜索失败", reply_message=True)
-
-    # 创建搜索会话
-    session = sessions.create(
-        user_id=event.user_id,
-        query=query,
-        results=list(page.iter_id()),
-    )
-
-    if not session.results:
-        await bot.delete_msg(message_id=searching_msg_id)
-        await matcher.finish("未搜索到本子", reply_message=True)
-
-    current_results = session.get_current_page()
-    blocked_message = f"{nickname}吃掉了一个不豪吃的本子"
-    messages = await build_search_result_messages(
-        bot, current_results, dm, jm, blocked_message
-    )
-
-    try:
-        await send_forward_msg(bot, event, messages)
-    except ActionFailed:
-        await matcher.finish("搜索结果发送失败", reply_message=True)
-
-    # 前进到下一页并保存会话（如果有更多结果）
-    session.advance_page()
-    if session.has_next_page():
-        sessions.set(event.user_id, session)
-        await matcher.send("搜索有更多结果，使用'jm下一页'指令查看更多")
-    else:
-        await matcher.send("已发送所有搜索结果")
-
-    await bot.delete_msg(message_id=searching_msg_id)
 
 
 # endregion
@@ -150,41 +150,48 @@ async def next_page_handler(
 
     searching_msg_id = (await matcher.send("正在搜索更多内容..."))["message_id"]
 
-    # 如果需要获取更多 API 数据
-    if session.needs_fetch_more():
-        try:
-            next_page = await jm.search(session.query, page=session.api_page + 1)
-            session.append_results(list(next_page.iter_id()))
-        except Exception:
-            logger.warning(
-                f"获取搜索下一页失败: query={session.query}, page={session.api_page + 1}",
-                exc_info=True,
-            )
-
-    current_results = session.get_current_page()
-    blocked_message = f"{nickname}吃掉了一个不豪吃的本子"
-    messages = await build_search_result_messages(
-        bot, current_results, dm, jm, blocked_message
-    )
-
     try:
-        await send_forward_msg(bot, event, messages)
-    except ActionFailed:
-        sessions.remove(user_id)
+        if session.needs_fetch_more():
+            try:
+                next_page = await jm.search(session.query, page=session.api_page + 1)
+                new_ids = list(next_page.iter_id())
+                if not session.append_results(new_ids) and new_ids:
+                    logger.warning(
+                        f"搜索下一页无新结果，停止取页: query={session.query}, "
+                        f"page={session.api_page + 1}"
+                    )
+            except Exception:
+                session.can_fetch_more = False
+                logger.warning(
+                    f"获取搜索下一页失败: query={session.query}, page={session.api_page + 1}",
+                    exc_info=True,
+                )
+                await matcher.send("下一页获取失败", reply_message=True)
+
+        current_results = session.get_current_page()
+        if not current_results:
+            sessions.remove(user_id)
+            await matcher.finish("已显示所有搜索结果", reply_message=True)
+
+        blocked_message = f"{nickname}吃掉了一个不豪吃的本子"
+        messages = await build_search_result_messages(
+            bot, current_results, dm, jm, blocked_message
+        )
+
+        try:
+            await send_forward_msg(bot, event, messages)
+        except ActionFailed:
+            sessions.remove(user_id)
+            await matcher.finish("下一页结果发送失败", reply_message=True)
+
+        session.advance_page(len(current_results))
+        if session.has_remaining_results():
+            await matcher.send("搜索有更多结果，使用'jm下一页'指令查看更多")
+        else:
+            sessions.remove(user_id)
+            await matcher.send("已显示所有搜索结果")
+    finally:
         await bot.delete_msg(message_id=searching_msg_id)
-        await matcher.finish("下一页结果发送失败", reply_message=True)
-
-    # 前进到下一页
-    session.advance_page()
-
-    # 检查是否还有更多
-    if session.is_last_page():
-        sessions.remove(user_id)
-        await matcher.send("已显示所有搜索结果")
-    else:
-        await matcher.send("搜索有更多结果，使用'jm下一页'指令查看更多")
-
-    await bot.delete_msg(message_id=searching_msg_id)
 
 
 # endregion

@@ -6,9 +6,16 @@ import sys
 from typing import Any, cast
 
 import pytest
+from pydantic import ValidationError
 
 config_module = cast(Any, sys.modules["nonebot_plugin_jmdownloader.config"])
 PluginConfig = config_module.PluginConfig
+
+
+@pytest.mark.parametrize("page_size", [0, -1])
+def test_search_page_size_must_be_positive(page_size: int):
+    with pytest.raises(ValidationError, match="jmcomic_results_per_page"):
+        PluginConfig(jmcomic_results_per_page=page_size)
 
 
 class TestOutputPasswordConfig:

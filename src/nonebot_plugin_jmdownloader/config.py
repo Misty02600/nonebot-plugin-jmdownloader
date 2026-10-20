@@ -55,7 +55,7 @@ class PluginConfig(BaseModel):
 
     # 服务层
     jmcomic_results_per_page: int = Field(
-        default=20, description="每页显示的搜索结果数量"
+        default=20, gt=0, description="每页显示的搜索结果数量"
     )
     jmcomic_max_page_count: int = Field(
         default=150, description="单次下载最大页数限制，0表示不限制"
