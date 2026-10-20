@@ -6,10 +6,27 @@
     ":semanticCommits",
     ":dependencyDashboard"
   ],
+  "automergeStrategy": "rebase",
+  "platformAutomerge": false,
   "onboarding": false,
-  "timezone": "Asia/Shanghai",
-  "schedule": [
-    "before 6am on monday"
-  ],
-  "prConcurrentLimit": 3
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "description": "Keep uv patch updates separate from compatibility migrations",
+      "matchPackageNames": ["astral-sh/uv"],
+      "separateMinorPatch": true
+    },
+    {
+      "description": "Automerge uv patch updates after required checks pass",
+      "matchPackageNames": ["astral-sh/uv"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Require manual review for uv compatibility migrations",
+      "matchPackageNames": ["astral-sh/uv"],
+      "matchUpdateTypes": ["minor", "major"],
+      "automerge": false
+    }
+  ]
 }

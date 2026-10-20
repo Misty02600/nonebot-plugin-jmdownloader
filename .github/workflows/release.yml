@@ -19,12 +19,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install the latest version of uv
-        uses: astral-sh/setup-uv@v7
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
           python-version: "3.11"
-          version: 'latest'
+          version: "0.11.29"
 
       - name: Get Version
         id: version
