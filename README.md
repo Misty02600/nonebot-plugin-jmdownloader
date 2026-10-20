@@ -98,25 +98,25 @@ plugins = ["nonebot_plugin_jmdownloader"]
 
 在 NoneBot2 项目的`.env`文件中添加下表中的必填配置
 
-|           配置项            | 必填  |  默认值   |                   说明                   |
-| :-------------------------: | :---: | :-------: | :--------------------------------------: |
-|      jmcomic_username       |  否   |    无     |               JM登录用户名               |
-|      jmcomic_password       |  否   |    无     |                JM登录密码                |
-|       jmcomic_proxies       |  否   |  system   |               网络代理地址               |
-|         jmcomic_log         |  否   |   False   | 是否开启JMComic-Crawler-Python的日志输出 |
-|    jmcomic_thread_count     |  否   |    10     |               下载线程数量               |
-|   jmcomic_group_list_mode   |  否   | blacklist |     群列表模式：blacklist/whitelist      |
-|    jmcomic_allow_groups     |  否   |    无     |  已废弃，请使用 jmcomic_group_list_mode  |
-|    jmcomic_allow_private    |  否   |   True    |           是否允许私聊使用功能           |
-|     jmcomic_user_limits     |  否   |     5     |        每位用户的每周下载限制次数        |
-|    jmcomic_output_format    |  否   |    pdf    |           输出格式：pdf 或 zip           |
-|    jmcomic_zip_password     |  否   |    无     | ZIP 密码模板，留空不设置密码，{id}会替换为jm号       |
-|    jmcomic_pdf_password     |  否   |    无     | PDF 密码模板，留空不设置密码，{id}会替换为jm号          |
-|   jmcomic_modify_real_md5   |  否   |   False   | 修改PDF的MD5以避免发送失败（仅PDF有效）  |
-|  jmcomic_results_per_page   |  否   |    20     |          每页显示的搜索结果数量          |
-|   jmcomic_max_page_count    |  否   |    150    |     单次下载最大页数限制，0表示不限制     |
-| jmcomic_allow_album_download|  否   |   False   |        是否允许使用本子集(多章节)下载功能           |
-| jmcomic_punish_on_violation |  否   |   True    | 群员下载违规内容时是否惩罚（禁言+拉黑）  |
+|            配置项            | 必填  |  默认值   |                      说明                      |
+| :--------------------------: | :---: | :-------: | :--------------------------------------------: |
+|       jmcomic_username       |  否   |    无     |                  JM登录用户名                  |
+|       jmcomic_password       |  否   |    无     |                   JM登录密码                   |
+|       jmcomic_proxies        |  否   |  system   |                  网络代理地址                  |
+|         jmcomic_log          |  否   |   False   |    是否开启JMComic-Crawler-Python的日志输出    |
+|     jmcomic_thread_count     |  否   |    10     |                  下载线程数量                  |
+|   jmcomic_group_list_mode    |  否   | blacklist |        群列表模式：blacklist/whitelist         |
+|     jmcomic_allow_groups     |  否   |    无     |     已废弃，请使用 jmcomic_group_list_mode     |
+|    jmcomic_allow_private     |  否   |   True    |              是否允许私聊使用功能              |
+|     jmcomic_user_limits      |  否   |     5     |           每位用户的每周下载限制次数           |
+|    jmcomic_output_format     |  否   |    pdf    |              输出格式：pdf 或 zip              |
+|     jmcomic_zip_password     |  否   |    无     | ZIP 密码模板，留空不设置密码，{id}会替换为jm号 |
+|     jmcomic_pdf_password     |  否   |    无     | PDF 密码模板，留空不设置密码，{id}会替换为jm号 |
+|   jmcomic_modify_real_md5    |  否   |   False   |    修改PDF的MD5以避免发送失败（仅PDF有效）     |
+|   jmcomic_results_per_page   |  否   |    20     |             每页显示的搜索结果数量             |
+|    jmcomic_max_page_count    |  否   |    150    |       单次下载最大页数限制，0表示不限制        |
+| jmcomic_allow_album_download |  否   |   False   |       是否允许使用本子集(多章节)下载功能       |
+| jmcomic_punish_on_violation  |  否   |   True    |    群员下载违规内容时是否惩罚（禁言+拉黑）     |
 
 **群列表模式说明：**
 - `blacklist`（黑名单模式）：默认禁用所有群，只有显式启用的群才能使用
@@ -176,7 +176,7 @@ JMCOMIC_PUNISH_ON_VIOLATION=True
 |          指令           |   权限   | 需要@ |   范围    |                         说明                         |
 | :---------------------: | :------: | :---: | :-------: | :--------------------------------------------------: |
 |       jm下载 [id]       |   群员   |  否   | 群聊/私聊 |        下载指定的 JMComic 本子到群文件或私聊         |
-|    jm下载集 [id] [章节]  |   群员   |  否   | 群聊/私聊 |  下载本子集，可选章节如 1-5 或 1,3,5  |
+|  jm下载集 [id] [章节]   |   群员   |  否   | 群聊/私聊 |         下载本子集，可选章节如 1-5 或 1,3,5          |
 |       jm查询 [id]       |   群员   |  否   | 群聊/私聊 |             查询指定的 JMComic 本子信息              |
 |     jm搜索 [关键词]     |   群员   |  否   | 群聊/私聊 |          搜索 JMComic 网站的漫画并返回列表           |
 |        jm下一页         |   群员   |  否   | 群聊/私聊 |                 显示搜索结果的下一页                 |
