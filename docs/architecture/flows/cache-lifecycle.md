@@ -10,7 +10,7 @@
 
 | 参与者 | 所有权 | 保护区间 |
 |---|---|---|
-| 四个下载 handler | `aiorwlock` 读锁 | 调用 `prepare_*_file()` 前到 `bot.call_api()` 返回或失败 |
+| 单本与本子集两个通用下载 handler | `aiorwlock` 读锁 | 调用 `prepare_*_file()` 前到 `send_file()` 返回或失败 |
 | `OutputCache.prepare()` | 最终输出路径锁 | 缓存验证、失效删除、下载和新输出验证 |
 | 定时清理 | `aiorwlock` 写锁 | 删除整个缓存根目录并重新创建 |
 
@@ -29,7 +29,7 @@ handler 请求缓存读锁
   ├─ 多个普通请求可以并行进入
   ├─ prepare 获取自己的输出路径锁
   │    └─ 验证并复用缓存，或下载并验证新输出
-  ├─ OneBot 上传仍在读锁范围内读取该路径
+  ├─ 平台上传仍在读锁范围内读取该路径
   └─ 上传结束或异常退出后释放读锁
 ```
 
@@ -64,4 +64,4 @@ handler 请求缓存读锁
 - 新增任何“准备文件后由外部消费者读取”的入口，都必须像现有 handler 一样持有 `cache_usage()` 到消费完成。
 - 不要在定时 handler 中绕过 `JMService.clear_cache()` 直接删除缓存目录。
 - 最终输出路径锁不协调不同输出共享的 `Bd_Pid` 图片目录；ZIP 必须保持 `delete_original_file: false`，由定时清理统一回收图片。
-- 覆盖测试位于 [`test_cache_leases.py`](../../../tests/test_cache_leases.py)、[`test_output_cache.py`](../../../tests/units/test_output_cache.py) 和 [`test_jm_service.py`](../../../tests/units/test_jm_service.py)。
+- 覆盖测试位于 [`test_cross_platform.py`](../../../tests/bot/test_cross_platform.py)、[`test_output_cache.py`](../../../tests/units/test_output_cache.py) 和 [`test_jm_service.py`](../../../tests/units/test_jm_service.py)。

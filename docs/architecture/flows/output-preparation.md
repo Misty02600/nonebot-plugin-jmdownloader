@@ -37,7 +37,7 @@ handler 取得缓存共享租约
   │    ├─ 再次验证副本密码状态
   │    └─ 返回副本路径
   │
-  ├─ OneBot 上传返回的路径
+  ├─ send_file 根据平台发送真实文件（OneBot 保留原生上传）
   └─ 上传结束后释放缓存共享租约
 ```
 
@@ -87,12 +87,12 @@ handler 取得缓存共享租约
 - MD5 副本生成或复验失败：不返回副本；
 - 准备方法返回 `None`：下载 handler 结束当前流程，不上传目标文件。
 
-OneBot 上传和下载额度仍属于 handler 层，JM 服务不依赖消息协议或用户策略；缓存租约必须跨过服务返回边界持续到上传结束。
+平台上传和下载额度仍属于 handler 层，JM 服务不依赖消息协议或用户策略；缓存租约必须跨过服务返回边界持续到上传结束。文件发送不支持或失败时终止 handler 链，不扣除额度。
 
 ## 维护与测试入口
 
 - 模板或格式验证：[`test_output_password.py`](../../../tests/units/test_output_password.py)；
 - option 复制、缓存失效、并发或 MD5：[`test_jm_option.py`](../../../tests/units/test_jm_option.py) 与 [`test_jm_service.py`](../../../tests/units/test_jm_service.py)；
 - 缓存读写锁：[`test_output_cache.py`](../../../tests/units/test_output_cache.py)；
-- 上传租约边界：[`test_cache_leases.py`](../../../tests/test_cache_leases.py)；
+- 上传租约边界：[`test_cross_platform.py`](../../../tests/bot/test_cross_platform.py)；
 - 配置默认值和空字符串：[`test_config.py`](../../../tests/units/test_config.py)。

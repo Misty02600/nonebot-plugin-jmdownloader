@@ -6,7 +6,7 @@
 
 [![LICENSE](https://img.shields.io/github/license/Misty02600/nonebot-plugin-jmdownloader.svg)](./LICENSE)
 [![python](https://img.shields.io/badge/python-3.11+-blue.svg?logo=python&logoColor=white)](https://www.python.org)
-[![Adapters](https://img.shields.io/badge/Adapters-OneBot%20v11-blue)](#supported-adapters)
+[![Adapters](https://img.shields.io/badge/Adapters-Alconna-blue)](#适配器支持)
 <br/>
 
 [![uv](https://img.shields.io/badge/package%20manager-uv-black?logo=uv)](https://github.com/astral-sh/uv)
@@ -16,8 +16,27 @@
 
 ## 📖 介绍
 
-JMComic搜索、下载插件，支持全局屏蔽jm号和tag，支持上传至群聊指定文件夹，仅支持OnebotV11协议。
+JMComic 搜索、下载插件，支持全局屏蔽 jm 号和 tag，通过 Alconna 通用消息支持多个平台；OneBot V11 保留群文件夹上传能力。
 
+## 适配器支持
+
+插件使用 `inherit_supported_adapters()` 继承 [Alconna](https://github.com/nonebot/plugin-alconna) 与 [Uninfo](https://github.com/RF-Tar-Railt/nonebot-plugin-uninfo) 共同支持的适配器，包括 OneBot V11、Telegram 和 Discord。宿主需要自行安装并配置对应适配器。
+
+| 能力 | OneBot V11 | Telegram、Discord 等平台 |
+| --- | --- | --- |
+| 查询、搜索与翻页 | 合并转发 | 支持合并转发时使用，否则逐条发送结果 |
+| PDF/ZIP 下载 | 群文件或私聊文件上传 | 通过 Alconna 发送文件，受平台文件类型、大小及权限限制 |
+| 指定上传文件夹 | 支持，取决于协议端 API | 不支持，命令会提示 |
+| 群组/频道开关与黑名单 | 支持 | 通过 Uninfo 获取场景和成员权限 |
+| 违规下载惩罚 | 普通成员加入黑名单，并尝试禁言 24 小时 | 普通成员加入当前场景黑名单，不调用 QQ 禁言 API |
+
+其他适配器的图片、文件和撤回能力以 Alconna 的[支持列表](https://github.com/nonebot/plugin-alconna#支持情况)为准；平台不支持文件发送或上传失败时，不扣除下载次数。搜索进度消息仅在支持撤回时尝试撤回，撤回失败不会影响结果。
+
+群组/频道配置、用户下载额度按平台隔离；搜索翻页还按机器人和会话场景隔离。原有 OneBot V11 群号和用户 ID 数据继续沿用，无需迁移。跨平台管理权限依赖 Uninfo，无法确认目标权限时取消黑名单操作；无法识别角色的用户只会被阻止下载违规内容，不会自动加入黑名单。
+
+`jm启用群`、`jm禁用群` 的 ID 属于发出命令的平台；负数群号可直接填写，频道或话题使用 `父场景ID/场景ID`。也可由超级用户在目标场景发送 `开启jm`。请按 NoneBot 的平台前缀规则配置 `SUPERUSERS`，避免不同平台的同号用户共享超级用户权限。
+
+`jm拉黑`、`jm解除拉黑` 接受用户提及或用户 ID。Telegram 的普通 `@username` 不一定携带用户 ID，无法解析时请直接填写数字用户 ID；插件不会把用户名当作用户 ID 保存。
 
 ## 💿 安装
 
@@ -194,7 +213,7 @@ JMCOMIC_PUNISH_ON_VIOLATION=True
 - 设置文件夹需要协议端API支持，bot会先读取群内是否有该文件夹，如果没有会尝试创建。
 - Bot会在每天凌晨3点清理缓存文件夹。
 - 被屏蔽的本子会在搜索结果中隐藏，下载被屏蔽的本子会被阻止下载。
-- 普通用户下载违规内容时，默认会被禁言24小时并加入本群黑名单（可通过 `JMCOMIC_PUNISH_ON_VIOLATION` 配置关闭）。
+- 普通用户在群组/频道下载违规内容时，默认会加入当前场景黑名单；OneBot V11 还会尝试禁言 24 小时（可通过 `JMCOMIC_PUNISH_ON_VIOLATION` 配置关闭）。
 - **超管、群管理员、群主下载违规内容时只会被阻止，不会被惩罚。**
 - **本子集下载**默认关闭，需配置 `JMCOMIC_ALLOW_ALBUM_DOWNLOAD=True` 启用。本子集下载不受页数限制，每次下载消耗 1 次额度。
 - **命令需要添加 COMMAND_START 前缀**

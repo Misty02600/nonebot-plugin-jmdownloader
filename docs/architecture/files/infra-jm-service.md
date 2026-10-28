@@ -10,7 +10,7 @@
 
 | 区域或符号 | 作用 | 为什么重要 |
 |---|---|---|
-| `build_album_output_name()` | 为完整或部分本子集生成稳定输出名 | 同时影响缓存 key 和 OneBot 上传文件名 |
+| `build_album_output_name()` | 为完整或部分本子集生成稳定输出名 | 同时影响缓存 key 和平台上传文件名 |
 | `JMService.__init__()` | 创建 photo/album 基础 option 与共享 `OutputCache` | 服务级对象不能携带请求专属密码 |
 | `cache_usage()`、`clear_cache()` | 把缓存共享租约和独占清理暴露给 handler/定时任务 | 租约必须覆盖准备到上传完整区间 |
 | `_resolve_password()` | 按当前输出格式选择模板并替换 `{id}` | photo 和 album 使用不同对象 ID 语义 |
@@ -51,7 +51,7 @@ bot/dependencies.py
 
 ### 缓存租约跨越服务返回边界
 
-`OutputCache.prepare()` 的同路径锁只覆盖文件准备，无法保护已经返回给 OneBot 的路径。因此生产 handler 必须在调用 `prepare_*_file()` 前取得 `cache_usage()`，并持有到上传 API 返回。定时清理只能调用 `clear_cache()` 获取写锁，不能直接删除目录。
+`OutputCache.prepare()` 的同路径锁只覆盖文件准备，无法保护已经返回给平台发送组件的路径。因此生产 handler 必须在调用 `prepare_*_file()` 前取得 `cache_usage()`，并持有到上传 API 返回。定时清理只能调用 `clear_cache()` 获取写锁，不能直接删除目录。
 
 ### 返回路径必须经过实际验证
 
@@ -76,7 +76,7 @@ bot/dependencies.py
 - [`test_jm_option.py`](../../../tests/units/test_jm_option.py)：插件块、请求 option 和深拷贝隔离；
 - [`test_output_cache.py`](../../../tests/units/test_output_cache.py)：读写锁与清理；
 - [`test_output_password.py`](../../../tests/units/test_output_password.py)：模板和真实 PDF/ZIP 验证；
-- [`test_cache_leases.py`](../../../tests/test_cache_leases.py)：四条 handler 的准备到上传租约；
-- [`test_dependencies.py`](../../../tests/test_dependencies.py)、[`test_config.py`](../../../tests/units/test_config.py)：配置组装与默认值。
+- [`test_cross_platform.py`](../../../tests/bot/test_cross_platform.py)：跨平台 handler 的准备到上传租约、额度与权限；
+- [`test_config.py`](../../../tests/units/test_config.py)：配置默认值。
 
 完整状态顺序见 [输出准备与密码流程](../flows/output-preparation.md)，缓存所有权见 [缓存使用与清理流程](../flows/cache-lifecycle.md)。

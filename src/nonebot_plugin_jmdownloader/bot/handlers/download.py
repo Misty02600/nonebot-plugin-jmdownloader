@@ -5,42 +5,39 @@ jm下载 和 jm本子集 命令，群聊和私聊统一处理。
 
 from jmcomic import JmAlbumDetail, JmPhotoDetail
 from nonebot import logger, on_command
-from nonebot.adapters.onebot.v11 import (
-    ActionFailed,
-    Bot,
-    GroupMessageEvent,
-    MessageEvent,
-    MessageSegment,
-    NetworkError,
-    PrivateMessageEvent,
-)
-from nonebot.adapters.onebot.v11.permission import GROUP_ADMIN, GROUP_OWNER
+from nonebot.adapters import Bot, Event
+from nonebot.exception import ActionFailed, NetworkError
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
+from nonebot_plugin_alconna import UniMessage
+from nonebot_plugin_alconna.uniseg import SerializeFailed
+from nonebot_plugin_uninfo import Uninfo
 
 from .. import DataManagerDep, JmServiceDep
 from ..dependencies import AlbumWithSelection, Photo, plugin_config
+from ..nonebot_utils import send_file
+from ..session import group_key, is_admin, is_onebot_v11, user_key
 from .common import group_enabled_check, private_enabled_check
 
 # region 前置检查 handler
 
 
-async def user_blacklist_check(
-    event: GroupMessageEvent, matcher: Matcher, dm: DataManagerDep
-):
+async def user_blacklist_check(session: Uninfo, matcher: Matcher, dm: DataManagerDep):
     """黑名单检查：检查用户是否在群黑名单中（仅群聊触发）"""
-    group = dm.get_group(event.group_id)
-    if str(event.user_id) in group.blacklist:
+    if session.scene.is_private:
+        return
+    group = dm.get_group(group_key(session))
+    if session.user.id in group.blacklist:
         await matcher.finish("你已被拉入本群黑名单，无法使用此功能")
 
 
 async def download_limit_check(
-    bot: Bot, event: MessageEvent, matcher: Matcher, dm: DataManagerDep
+    bot: Bot, event: Event, session: Uninfo, matcher: Matcher, dm: DataManagerDep
 ):
     """下载次数检查：检查用户是否有剩余下载次数（群聊和私聊都触发）"""
     if await SUPERUSER(bot, event):
         return  # 超管不限制
-    if not dm.users.has_limit(event.user_id, dm.default_user_limit):
+    if not dm.users.has_limit(user_key(session), dm.default_user_limit):
         await matcher.finish("你的下载次数已经用完了！")
 
 
@@ -83,7 +80,7 @@ def build_album_progress_message(
 # region 事件处理函数
 
 
-async def page_count_check(event: MessageEvent, matcher: Matcher, photo: Photo):
+async def page_count_check(matcher: Matcher, photo: Photo):
     """检查页数是否超过限制（群聊和私聊都触发）"""
     max_pages = plugin_config.jmcomic_max_page_count
     if max_pages <= 0:
@@ -99,52 +96,56 @@ async def page_count_check(event: MessageEvent, matcher: Matcher, photo: Photo):
         )
 
 
+async def enforce_restriction(
+    bot: Bot,
+    event: Event,
+    session: Uninfo,
+    matcher: Matcher,
+    dm: DataManagerDep,
+    photo_id: str,
+    tags: list[str],
+    label: str,
+):
+    """群组/频道统一限制；角色未知时只阻止，QQ 额外尝试禁言。"""
+    if session.scene.is_private:
+        return
+    if not dm.restriction.is_photo_restricted(photo_id, tags):
+        return
+    privileged = await SUPERUSER(bot, event) or is_admin(session)
+    known_role = session.member is not None and bool(session.member.roles)
+    if plugin_config.jmcomic_punish_on_violation and known_role and not privileged:
+        key = group_key(session)
+        group = dm.get_group(key)
+        if is_onebot_v11(session):
+            try:
+                await bot.call_api(
+                    "set_group_ban",
+                    group_id=int(session.scene.id),
+                    user_id=int(session.user.id),
+                    duration=86400,
+                )
+            except (ActionFailed, NetworkError):
+                pass
+        group.blacklist.add(session.user.id)
+        dm.save_group(key)
+        message = UniMessage.at(session.user.id).text(
+            f"该{label}（或其tag）被禁止下载！\n你已被加入本群jm黑名单"
+        )
+        await matcher.finish(await message.export(bot=bot))
+    await matcher.finish(f"该{label}（或其tag）被禁止下载！")
+
+
 async def photo_restriction_check(
     bot: Bot,
-    event: GroupMessageEvent,
+    event: Event,
+    session: Uninfo,
     matcher: Matcher,
     photo: Photo,
     dm: DataManagerDep,
 ):
-    """检查内容限制，违规则根据配置惩罚（仅群聊触发）
-
-    所有用户（包括超管）都受内容限制，但超管/管理员/群主免于惩罚。
-    """
-    photo_tags = list(photo.tags) if photo.tags else []
-    if not dm.restriction.is_photo_restricted(photo.id, photo_tags):
-        return  # 未被限制，允许下载
-
-    # 检查是否应该惩罚
-    should_punish = plugin_config.jmcomic_punish_on_violation
-
-    # 超管/管理员/群主免惩罚（无论配置如何）
-    if should_punish:
-        is_privileged = await SUPERUSER(bot, event) or await (
-            GROUP_ADMIN | GROUP_OWNER
-        )(bot, event)
-        if is_privileged:
-            should_punish = False
-
-    if should_punish:
-        # 惩罚：禁言 + 黑名单
-        user_id = str(event.user_id)
-        group_id = event.group_id
-        group = dm.get_group(group_id)
-        try:
-            await bot.set_group_ban(
-                group_id=event.group_id, user_id=event.user_id, duration=86400
-            )
-        except ActionFailed:
-            pass
-        group.blacklist.add(user_id)
-        dm.save_group(group_id)
-        await matcher.finish(
-            MessageSegment.at(event.user_id)
-            + "该本子（或其tag）被禁止下载！\n你已被加入本群jm黑名单"
-        )
-    else:
-        # 只阻止，不惩罚（特权用户 或 配置关闭惩罚）
-        await matcher.finish("该本子（或其tag）被禁止下载！")
+    await enforce_restriction(
+        bot, event, session, matcher, dm, photo.id, list(photo.tags or []), "本子"
+    )
 
 
 async def album_enabled_check(matcher: Matcher):
@@ -155,49 +156,23 @@ async def album_enabled_check(matcher: Matcher):
 
 async def album_restriction_check(
     bot: Bot,
-    event: GroupMessageEvent,
+    event: Event,
+    session: Uninfo,
     matcher: Matcher,
     selection: AlbumWithSelection,
     dm: DataManagerDep,
 ):
-    """检查本子集内容限制，违规则根据配置惩罚（仅群聊触发）"""
+    """检查群组/频道的本子集内容限制。"""
     album, _ = selection
-    album_tags = list(album.tags) if album.tags else []
-    if not dm.restriction.is_photo_restricted(album.id, album_tags):
-        return
-
-    should_punish = plugin_config.jmcomic_punish_on_violation
-
-    if should_punish:
-        is_privileged = await SUPERUSER(bot, event) or await (
-            GROUP_ADMIN | GROUP_OWNER
-        )(bot, event)
-        if is_privileged:
-            should_punish = False
-
-    if should_punish:
-        user_id = str(event.user_id)
-        group_id = event.group_id
-        group = dm.get_group(group_id)
-        try:
-            await bot.set_group_ban(
-                group_id=event.group_id, user_id=event.user_id, duration=86400
-            )
-        except ActionFailed:
-            pass
-        group.blacklist.add(user_id)
-        dm.save_group(group_id)
-        await matcher.finish(
-            MessageSegment.at(event.user_id)
-            + "该本子集（或其tag）被禁止下载！\n你已被加入本群jm黑名单"
-        )
-    else:
-        await matcher.finish("该本子集（或其tag）被禁止下载！")
+    await enforce_restriction(
+        bot, event, session, matcher, dm, album.id, list(album.tags or []), "本子集"
+    )
 
 
 async def send_progress_message(
     bot: Bot,
-    event: MessageEvent,
+    event: Event,
+    session: Uninfo,
     matcher: Matcher,
     photo: Photo,
     dm: DataManagerDep,
@@ -209,7 +184,7 @@ async def send_progress_message(
     # 查询剩余次数（不扣减）
     remaining: int | None = None
     if not is_su:
-        remaining = dm.users.get_limit(event.user_id, dm.default_user_limit)
+        remaining = dm.users.get_limit(user_key(session), dm.default_user_limit)
 
     # 发送进度消息
     try:
@@ -220,74 +195,57 @@ async def send_progress_message(
         logger.warning(f"{e},可能是协议端发送文件时间太长导致的报错")
 
 
-async def group_download_and_upload(
+async def upload_prepared_file(
     bot: Bot,
-    event: GroupMessageEvent,
+    event: Event,
+    session: Uninfo,
+    matcher: Matcher,
+    dm: DataManagerDep,
+    file_path: str,
+    name: str,
+):
+    folder_id = None
+    if not session.scene.is_private:
+        folder_id = dm.get_group(group_key(session)).folder_id
+    try:
+        await send_file(bot, event, session, file_path, name, folder_id)
+    except SerializeFailed:
+        await matcher.finish("当前平台不支持文件发送，未扣除下载次数")
+    except (ActionFailed, NetworkError):
+        await matcher.finish("发送文件失败，未扣除下载次数")
+
+
+async def download_and_upload(
+    bot: Bot,
+    event: Event,
+    session: Uninfo,
     matcher: Matcher,
     photo: Photo,
     dm: DataManagerDep,
     jm: JmServiceDep,
 ):
-    """下载文件并上传群文件（仅群聊触发）"""
+    """所有平台共用下载流程；缓存租约覆盖上传全过程。"""
     async with jm.cache_usage():
-        # 下载
         try:
             result = await jm.prepare_photo_file(photo)
         except Exception:
             logger.warning(f"下载本子失败: photo_id={photo.id}", exc_info=True)
             await matcher.finish("下载失败")
-        if result is None:
-            await matcher.finish("下载失败")
-
-        file_path, ext = result
-
-        # 上传
-        group_config = dm.get_group(event.group_id)
-        try:
-            params = {
-                "group_id": event.group_id,
-                "file": file_path,
-                "name": f"{photo.id}{ext}",
-            }
-            if group_config.folder_id:
-                params["folder_id"] = group_config.folder_id
-            await bot.call_api("upload_group_file", **params)
-        except ActionFailed:
-            await matcher.send("发送文件失败")
-
-
-async def private_download_and_upload(
-    bot: Bot,
-    event: PrivateMessageEvent,
-    matcher: Matcher,
-    photo: Photo,
-    jm: JmServiceDep,
-):
-    """下载文件并上传私聊文件（仅私聊触发）"""
-    async with jm.cache_usage():
-        # 下载
-        result = await jm.prepare_photo_file(photo)
 
         if result is None:
             await matcher.finish("下载失败")
 
         file_path, ext = result
 
-        # 上传
-        try:
-            await bot.call_api(
-                "upload_private_file",
-                user_id=event.user_id,
-                file=file_path,
-                name=f"{photo.id}{ext}",
-            )
-        except ActionFailed:
-            await matcher.finish("发送文件失败")
+        await upload_prepared_file(
+            bot, event, session, matcher, dm, file_path, f"{photo.id}{ext}"
+        )
 
 
 async def send_album_progress_message(
     bot: Bot,
-    event: MessageEvent,
+    event: Event,
+    session: Uninfo,
     matcher: Matcher,
     selection: AlbumWithSelection,
     dm: DataManagerDep,
@@ -299,7 +257,7 @@ async def send_album_progress_message(
 
     remaining: int | None = None
     if not is_su:
-        remaining = dm.users.get_limit(event.user_id, dm.default_user_limit)
+        remaining = dm.users.get_limit(user_key(session), dm.default_user_limit)
 
     try:
         await matcher.send(build_album_progress_message(album, episodes, remaining, jm))
@@ -309,15 +267,16 @@ async def send_album_progress_message(
         logger.warning(f"{e},可能是协议端发送文件时间太长导致的报错")
 
 
-async def group_album_download_and_upload(
+async def album_download_and_upload(
     bot: Bot,
-    event: GroupMessageEvent,
+    event: Event,
+    session: Uninfo,
     matcher: Matcher,
     selection: AlbumWithSelection,
     dm: DataManagerDep,
     jm: JmServiceDep,
 ):
-    """下载本子集并上传群文件（仅群聊触发）"""
+    """下载并发送本子集，缓存租约覆盖上传全过程。"""
     album, episodes = selection
     output_name = jm.get_album_output_name(album, episodes)
     async with jm.cache_usage():
@@ -331,58 +290,21 @@ async def group_album_download_and_upload(
 
         file_path, ext = result
 
-        group_config = dm.get_group(event.group_id)
-        try:
-            params = {
-                "group_id": event.group_id,
-                "file": file_path,
-                "name": f"{output_name}{ext}",
-            }
-            if group_config.folder_id:
-                params["folder_id"] = group_config.folder_id
-            await bot.call_api("upload_group_file", **params)
-        except ActionFailed:
-            await matcher.send("发送文件失败")
-
-
-async def private_album_download_and_upload(
-    bot: Bot,
-    event: PrivateMessageEvent,
-    matcher: Matcher,
-    selection: AlbumWithSelection,
-    jm: JmServiceDep,
-):
-    """下载本子集并上传私聊文件（仅私聊触发）"""
-    album, episodes = selection
-    output_name = jm.get_album_output_name(album, episodes)
-    async with jm.cache_usage():
-        result = await jm.prepare_album_file(album, episodes)
-
-        if result is None:
-            await matcher.finish("下载失败")
-
-        file_path, ext = result
-
-        try:
-            await bot.call_api(
-                "upload_private_file",
-                user_id=event.user_id,
-                file=file_path,
-                name=f"{output_name}{ext}",
-            )
-        except ActionFailed:
-            await matcher.finish("发送文件失败")
+        await upload_prepared_file(
+            bot, event, session, matcher, dm, file_path, f"{output_name}{ext}"
+        )
 
 
 async def deduct_limit(
     bot: Bot,
-    event: MessageEvent,
+    event: Event,
+    session: Uninfo,
     dm: DataManagerDep,
 ):
     """扣减额度（下载成功后触发，静默）"""
     if await SUPERUSER(bot, event):
         return
-    dm.users.decrease_limit(event.user_id, 1, dm.default_user_limit)
+    dm.users.decrease_limit(user_key(session), 1, dm.default_user_limit)
     dm.save_users()
 
 
@@ -402,9 +324,8 @@ jm_download = on_command(
         page_count_check,  # 5. 页数限制检查（群聊和私聊）
         photo_restriction_check,  # 6. 内容限制检查（仅群聊）
         send_progress_message,  # 7. 发送进度消息（不扣额度）
-        group_download_and_upload,  # 8. 下载 + 上传群文件（仅群聊）
-        private_download_and_upload,  # 9. 下载 + 上传私聊文件（仅私聊）
-        deduct_limit,  # 10. 扣减额度（下载成功后静默扣减）
+        download_and_upload,  # 8. 下载并发送文件（群组、频道或私聊）
+        deduct_limit,  # 9. 发送成功后扣减额度
     ],
 )
 
@@ -420,8 +341,7 @@ jm_album_download = on_command(
         download_limit_check,
         album_restriction_check,
         send_album_progress_message,
-        group_album_download_and_upload,
-        private_album_download_and_upload,
+        album_download_and_upload,
         deduct_limit,
     ],
 )

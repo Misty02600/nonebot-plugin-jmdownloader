@@ -6,31 +6,28 @@ jm搜索 和 jm下一页 命令，群聊和私聊统一处理。
 import asyncio
 
 from nonebot import logger, on_command
-from nonebot.adapters.onebot.v11 import (
-    ActionFailed,
-    Bot,
-    Message,
-    MessageEvent,
-    MessageSegment,
-)
+from nonebot.adapters import Bot, Event
+from nonebot.exception import ActionFailed, NetworkError
 from nonebot.matcher import Matcher
+from nonebot_plugin_alconna import UniMessage
+from nonebot_plugin_uninfo import Uninfo
 
 from ...infra import blur_image_async
 from .. import DataManagerDep, JmServiceDep, SessionsDep
 from ..dependencies import ArgText, RandomNickname
-from ..nonebot_utils import send_forward_msg
+from ..nonebot_utils import recall_progress, send_forward_msg
+from ..session import search_key
 from .common import group_enabled_check, private_enabled_check
 
 # region 辅助函数
 
 
 async def build_search_result_messages(
-    bot: Bot,
     photo_ids: list[str],
     dm: DataManagerDep,
     jm: JmServiceDep,
     blocked_message: str,
-) -> list[MessageSegment]:
+) -> list[UniMessage]:
     """构建搜索结果消息列表"""
     photos = await asyncio.gather(
         *(jm.get_photo(photo_id) for photo_id in photo_ids),
@@ -48,21 +45,15 @@ async def build_search_result_messages(
             continue
 
         if not dm.restriction.restricted_tags.isdisjoint(photo.tags):
-            message_node = MessageSegment.node_custom(
-                int(bot.self_id), "jm搜索结果", blocked_message
-            )
+            message = UniMessage(blocked_message)
         else:
-            node_content = Message()
-            node_content += jm.format_photo_info(photo)
+            message = UniMessage(jm.format_photo_info(photo))
 
             if not isinstance(avatar, BaseException):
                 avatar = await blur_image_async(avatar)
-                node_content += MessageSegment.image(avatar)
+                message.image(raw=avatar)
 
-            message_node = MessageSegment.node_custom(
-                int(bot.self_id), "jm搜索结果", node_content
-            )
-        messages.append(message_node)
+        messages.append(message)
 
     return messages
 
@@ -74,7 +65,8 @@ async def build_search_result_messages(
 
 async def search_handler(
     bot: Bot,
-    event: MessageEvent,
+    event: Event,
+    session_info: Uninfo,
     matcher: Matcher,
     query: ArgText,
     dm: DataManagerDep,
@@ -86,46 +78,47 @@ async def search_handler(
     if not query:
         await matcher.finish("请输入要搜索的内容")
 
-    searching_msg_id = (await matcher.send("正在搜索中..."))["message_id"]
+    user_id = search_key(session_info)
+    searching_receipt = await UniMessage("正在搜索中...").send(target=event, bot=bot)
 
     try:
         try:
             page = await jm.search(query)
         except Exception:
             logger.warning(f"搜索失败: query={query}", exc_info=True)
-            await matcher.finish("搜索失败", reply_message=True)
+            await matcher.finish("搜索失败")
 
         session = sessions.create(
-            user_id=event.user_id,
+            user_id=user_id,
             query=query,
             results=list(page.iter_id()),
         )
 
         if not session.results:
-            sessions.remove(event.user_id)
-            await matcher.finish("未搜索到本子", reply_message=True)
+            sessions.remove(user_id)
+            await matcher.finish("未搜索到本子")
 
         current_results = session.get_current_page()
         blocked_message = f"{nickname}吃掉了一个不豪吃的本子"
         messages = await build_search_result_messages(
-            bot, current_results, dm, jm, blocked_message
+            current_results, dm, jm, blocked_message
         )
 
         try:
-            await send_forward_msg(bot, event, messages)
-        except ActionFailed:
-            sessions.remove(event.user_id)
-            await matcher.finish("搜索结果发送失败", reply_message=True)
+            await send_forward_msg(bot, event, messages, "jm搜索结果")
+        except (ActionFailed, NetworkError):
+            sessions.remove(user_id)
+            await matcher.finish("搜索结果发送失败")
 
         session.advance_page(len(current_results))
         if session.has_remaining_results():
-            sessions.set(event.user_id, session)
+            sessions.set(user_id, session)
             await matcher.send("搜索有更多结果，使用'jm下一页'指令查看更多")
         else:
-            sessions.remove(event.user_id)
+            sessions.remove(user_id)
             await matcher.send("已发送所有搜索结果")
     finally:
-        await bot.delete_msg(message_id=searching_msg_id)
+        await recall_progress(searching_receipt)
 
 
 # endregion
@@ -135,7 +128,8 @@ async def search_handler(
 
 async def next_page_handler(
     bot: Bot,
-    event: MessageEvent,
+    event: Event,
+    session_info: Uninfo,
     matcher: Matcher,
     dm: DataManagerDep,
     jm: JmServiceDep,
@@ -143,12 +137,14 @@ async def next_page_handler(
     nickname: RandomNickname,
 ):
     """处理下一页请求（群聊和私聊都触发）"""
-    user_id = event.user_id
+    user_id = search_key(session_info)
     session = sessions.get(user_id)
     if not session:
         await matcher.finish("没有进行中的搜索，请先使用'jm搜索'命令")
 
-    searching_msg_id = (await matcher.send("正在搜索更多内容..."))["message_id"]
+    searching_receipt = await UniMessage("正在搜索更多内容...").send(
+        target=event, bot=bot
+    )
 
     try:
         if session.needs_fetch_more():
@@ -166,23 +162,23 @@ async def next_page_handler(
                     f"获取搜索下一页失败: query={session.query}, page={session.api_page + 1}",
                     exc_info=True,
                 )
-                await matcher.send("下一页获取失败", reply_message=True)
+                await matcher.send("下一页获取失败")
 
         current_results = session.get_current_page()
         if not current_results:
             sessions.remove(user_id)
-            await matcher.finish("已显示所有搜索结果", reply_message=True)
+            await matcher.finish("已显示所有搜索结果")
 
         blocked_message = f"{nickname}吃掉了一个不豪吃的本子"
         messages = await build_search_result_messages(
-            bot, current_results, dm, jm, blocked_message
+            current_results, dm, jm, blocked_message
         )
 
         try:
-            await send_forward_msg(bot, event, messages)
-        except ActionFailed:
+            await send_forward_msg(bot, event, messages, "jm搜索结果")
+        except (ActionFailed, NetworkError):
             sessions.remove(user_id)
-            await matcher.finish("下一页结果发送失败", reply_message=True)
+            await matcher.finish("下一页结果发送失败")
 
         session.advance_page(len(current_results))
         if session.has_remaining_results():
@@ -191,7 +187,7 @@ async def next_page_handler(
             sessions.remove(user_id)
             await matcher.send("已显示所有搜索结果")
     finally:
-        await bot.delete_msg(message_id=searching_msg_id)
+        await recall_progress(searching_receipt)
 
 
 # endregion
