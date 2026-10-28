@@ -11,7 +11,7 @@ from typing import Annotated
 
 from jmcomic import JmAlbumDetail, JmPhotoDetail, MissingAlbumPhotoException
 from nonebot import get_driver, get_plugin_config, logger, require
-from nonebot.adapters.onebot.v11 import Message
+from nonebot.adapters import Bot, Event, Message
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, Depends
 
@@ -23,7 +23,9 @@ from ..infra.search_session import SessionCache
 
 # 确保依赖插件已加载
 require("nonebot_plugin_localstore")
+require("nonebot_plugin_alconna")
 
+from nonebot_plugin_alconna import At, UniMessage
 from nonebot_plugin_localstore import get_plugin_cache_dir, get_plugin_data_dir
 
 plugin_config = get_plugin_config(PluginConfig)
@@ -44,18 +46,34 @@ RandomNickname = Annotated[str, Depends(get_random_nickname)]
 # endregion
 
 
-# region onev11通用依赖
+# region 通用消息依赖
 
 
-async def target_user_id(matcher: Matcher, arg: Message = CommandArg()) -> int:
-    """解析并验证 @ 目标必填"""
-    for seg in arg:
-        if seg.type == "at" and seg.data.get("qq") and seg.data["qq"] != "all":
-            return int(seg.data["qq"])
-    await matcher.finish("请使用@指定目标用户")
+async def target_user_id(
+    bot: Bot, event: Event, matcher: Matcher, arg: Message = CommandArg()
+) -> str:
+    """优先使用带 ID 的用户提及，也接受显式用户 ID。"""
+    message = UniMessage.of(arg, bot=bot)
+    mentions = message.get(At)
+    if not mentions:
+        # 部分适配器把提及也视为文本，CommandArg 切片会丢失其用户 ID。
+        mentions = UniMessage.of(event.get_message(), bot=bot).get(At)
+    if mentions:
+        for seg in mentions:
+            if (
+                seg.flag == "user"
+                and seg.target != bot.self_id
+                and not seg.target.startswith("@")
+            ):
+                return seg.target
+        await matcher.finish("无法从该 @ 获取用户 ID，请直接填写用户 ID")
+    target = message.extract_plain_text().strip()
+    if target and not target.startswith("@") and len(target.split()) == 1:
+        return target
+    await matcher.finish("请使用@或用户ID指定目标用户")
 
 
-TargetUserId = Annotated[int, Depends(target_user_id)]
+TargetUserId = Annotated[str, Depends(target_user_id)]
 
 # endregion
 

@@ -5,14 +5,10 @@ jm查询 命令，群聊和私聊统一处理。
 
 from jmcomic import JmAlbumDetail
 from nonebot import on_command
-from nonebot.adapters.onebot.v11 import (
-    ActionFailed,
-    Bot,
-    Message,
-    MessageEvent,
-    MessageSegment,
-)
+from nonebot.adapters import Bot, Event
+from nonebot.exception import ActionFailed, NetworkError
 from nonebot.matcher import Matcher
+from nonebot_plugin_alconna import UniMessage
 
 from ...infra import blur_image_async
 from ...infra.jm_service import AvatarDownloadError
@@ -25,29 +21,27 @@ from .common import group_enabled_check, private_enabled_check
 
 
 async def query_handler(
-    bot: Bot, event: MessageEvent, matcher: Matcher, photo: Photo, jm: JmServiceDep
+    bot: Bot, event: Event, matcher: Matcher, photo: Photo, jm: JmServiceDep
 ):
     """处理查询请求（群聊和私聊都触发）"""
     album: JmAlbumDetail | None = None
     if not photo.is_single_album:
         album = await jm.get_album_from_photo(photo)
 
-    message = Message()
+    message = UniMessage()
     message += jm.format_photo_info(photo, album)
 
     try:
         avatar_bytes = await jm.download_avatar(photo.id)
         avatar_bytes = await blur_image_async(avatar_bytes)
-        message += MessageSegment.image(avatar_bytes)
+        message.image(raw=avatar_bytes)
     except AvatarDownloadError:
         pass
 
-    message_node = MessageSegment.node_custom(int(bot.self_id), "jm查询结果", message)
-
     try:
-        await send_forward_msg(bot, event, [message_node])
-    except ActionFailed:
-        await matcher.finish("查询结果发送失败", reply_message=True)
+        await send_forward_msg(bot, event, [message], "jm查询结果")
+    except (ActionFailed, NetworkError):
+        await matcher.finish("查询结果发送失败")
 
 
 # endregion

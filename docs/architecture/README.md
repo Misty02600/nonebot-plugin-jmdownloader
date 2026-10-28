@@ -5,6 +5,7 @@
 ## 从哪里开始
 
 - [架构总览](overview.md)：插件边界、组件分工、数据位置、外部依赖和主要约束。
+- [跨平台边界](multi-platform.md)：适配器继承、通用消息、平台专属能力、权限与状态隔离。
 - [输出准备与密码流程](flows/output-preparation.md)：从下载命令到可上传 PDF/ZIP 的完整状态流。
 - [缓存使用与清理流程](flows/cache-lifecycle.md)：下载、上传与定时清理之间的所有权边界。
 - [JMService 文件导读](files/infra-jm-service.md)：下载、输出缓存、密码注入和文件验证的核心实现入口。
@@ -13,7 +14,7 @@
 
 ## 一句话架构
 
-插件入口注册 OneBot V11 命令；`bot/` 负责依赖组装和消息流程，`core/` 保存无 I/O 的领域模型，`infra/` 封装 JMComic、持久化、缓存和文件处理；业务数据与下载缓存分别交给 `nonebot_plugin_localstore` 管理。
+插件入口先声明 Alconna 与 Uninfo 依赖，再注册跨平台命令；`bot/` 负责依赖组装、消息和平台能力边界，`core/` 保存无 I/O 的领域模型，`infra/` 封装 JMComic、持久化、缓存和文件处理；业务数据与下载缓存分别交给 `nonebot_plugin_localstore` 管理。
 
 ## 文档边界
 
@@ -30,6 +31,7 @@
 | 改动 | 需要复核 |
 |---|---|
 | 目录分层、依赖组装、数据目录或定时任务 | [架构总览](overview.md) |
+| 支持的适配器、消息发送、平台权限或状态键 | [跨平台边界](multi-platform.md) |
 | 输出格式、密码模板、缓存命中或验证 | [输出准备流程](flows/output-preparation.md) 与 [JMService 导读](files/infra-jm-service.md) |
 | 下载/上传租约、定时清理、读写锁或线程调用 | [缓存生命周期流程](flows/cache-lifecycle.md)、[ADR-0002](../adr/0002-coordinate-cache-with-runtime-locks.md) 与 [JMService 导读](files/infra-jm-service.md) |
 | 密码功能的最终范围、验证和交付状态 | [PLAN-0001](../plans/done/plan-0001-output-passwords.md) |

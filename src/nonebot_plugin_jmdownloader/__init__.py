@@ -1,15 +1,19 @@
 """NoneBot JMComic 插件
 
-JMComic 搜索、下载插件，支持全局屏蔽 jm 号和 tag，仅支持 OnebotV11 协议。
+JMComic 搜索、下载插件，使用 Alconna 通用消息支持多个平台。
 """
 
-from nonebot.plugin import PluginMetadata
+from nonebot import require
+from nonebot.plugin import PluginMetadata, inherit_supported_adapters
+
+require("nonebot_plugin_alconna")
+require("nonebot_plugin_uninfo")
 
 from .config import PluginConfig
 
 __plugin_meta__ = PluginMetadata(
     name="JMComic插件",
-    description="JMComic搜索、下载插件，支持全局屏蔽jm号和tag，仅支持OnebotV11协议。",
+    description="跨平台 JMComic 搜索、下载插件，支持全局屏蔽 jm 号和 tag。",
     usage="jm下载 [jm号]：下载指定jm号的本子\n"
     "jm查询 [jm号]：查询指定jm号的本子\n"
     "jm搜索 [关键词]：搜索包含关键词的本子\n"
@@ -17,7 +21,9 @@ __plugin_meta__ = PluginMetadata(
     type="application",
     homepage="https://github.com/Misty02600/nonebot-plugin-jmdownloader",
     config=PluginConfig,
-    supported_adapters={"~onebot.v11"},
+    supported_adapters=inherit_supported_adapters(
+        "nonebot_plugin_alconna", "nonebot_plugin_uninfo"
+    ),
     extra={"author": "Misty02600 <xiao02600@gmail.com>"},
 )
 
